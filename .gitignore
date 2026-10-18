@@ -1,6 +1,9 @@
 # Test artifacts and dev scratch files
 /tests/.tmp/
 
+# Agent workspace data (work logs, not part of the project)
+.workbuddy/
+
 # Python
 __pycache__/
 *.py[cod]
