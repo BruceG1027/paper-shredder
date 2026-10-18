@@ -1,0 +1,2864 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Paper Shredder: Reviewer #2's Nightmare | 学术发疯模拟器</title>
+    
+    <style>
+
+        :root { color-scheme:dark; --bg:#0b0d12; --rail-left:156px; --rail-right:88px; }
+        * { box-sizing:border-box; user-select:none; -webkit-user-select:none; }
+        html,body { margin:0; width:100%; height:100%; overflow:hidden; background:var(--bg); color:#e2e8f0; font:12px Inter,Segoe UI,Arial,sans-serif; }
+        button,input,textarea,select { font:inherit; color:inherit; }
+        button { cursor:pointer; border:1px solid #334155; background:#151c29; border-radius:10px; }
+        button:hover { border-color:#64748b; background:#1e293b; }
+        button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible { outline:2px solid #fbbf24; outline-offset:3px; }
+        button:disabled { opacity:.3; cursor:default; }
+        svg { width:18px; height:18px; display:block; flex-shrink:0; }
+        #gameCanvas { position:fixed; inset:0; width:100%; height:100%; display:block; cursor:crosshair; }
+        .glass-panel { background:#10151feb; border:1px solid #ffffff13; box-shadow:0 10px 30px #0005,inset 0 1px #ffffff09; backdrop-filter:blur(14px); }
+        .rail { position:fixed; top:12px; bottom:12px; z-index:20; display:flex; flex-direction:column; gap:9px; padding:10px; border-radius:16px; }
+        #leftRail { left:10px; width:146px; }
+        #rightRail { right:10px; width:78px; align-items:stretch; }
+        .brand { font-size:10px; font-weight:800; letter-spacing:.09em; color:#cbd5e1; padding:7px 0 10px; text-align:center; }
+        #paperSelect { width:100%; padding:9px 5px; border:1px solid #334155; border-radius:9px; background:#0f172a; font-size:10px; }
+        #openCustomModalBtn { width:100%; padding:10px; display:flex; justify-content:center; align-items:center; gap:8px; }
+        .page-controls { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+        #pageIndicator { grid-column:1 / -1; text-align:center; font:11px Consolas,monospace; padding:7px 0; color:#cbd5e1; }
+        .page-controls button { min-height:32px; font-size:20px; }
+        #viewModeBtn { min-height:34px; font-size:11px; }
+        .rail-spacer { flex:1; }
+        .rail-actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+        .rail-actions button { min-height:37px; display:flex; align-items:center; justify-content:center; }
+        #acceptBtn { color:#34d399; font-size:13px; font-weight:800; }
+        #audioToggleBtn { color:#cbd5e1; }
+        .weapon-btn { --weapon-color:#f43f5e; min-height:72px; width:100%; padding:7px 3px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; font-size:10px; background:#111827; transition:transform .15s,border-color .15s; }
+        .weapon-btn svg { width:30px; height:26px; color:var(--weapon-color); }
+        .weapon-btn.active { transform:translateX(-3px); border-color:var(--weapon-color); box-shadow:0 0 18px color-mix(in srgb,var(--weapon-color) 25%,transparent),inset 0 0 15px color-mix(in srgb,var(--weapon-color) 12%,transparent); }
+        .weapon-btn small { font-size:9px; color:#94a3b8; }
+        #flightBtn { min-height:50px; color:#fbbf24; border-color:#92400e; font-size:11px; }
+        #flightBtn[aria-pressed=true] { background:#7f1d1d; box-shadow:0 0 20px #f59e0b55; }
+        .hidden { display:none !important; } .flex { display:flex; } .items-center { align-items:center; } .justify-between { justify-content:space-between; } .justify-end { justify-content:flex-end; }
+        .gap-2 { gap:8px; } .gap-2\.5 { gap:10px; } .mb-4 { margin-bottom:14px; } .mt-5 { margin-top:16px; }
+        #customModal { position:fixed; inset:0; z-index:50; background:#000b; backdrop-filter:blur(8px); align-items:center; justify-content:center; padding:16px; }
+        #customModal>div { width:100%; max-width:500px; max-height:calc(100vh - 32px); overflow-y:auto; padding:22px; border-radius:20px; }
+        h3 { margin:0; font-size:16px; } p { margin:8px 0; } #closeCustomModalBtn { padding:5px 9px; }
+        #customModal label { display:block; margin-bottom:5px; font-size:11px; color:#94a3b8; }
+        #customModal input,#customModal textarea { width:100%; border:1px solid #334155; border-radius:10px; padding:8px 10px; background:#0f172a; user-select:text; -webkit-user-select:text; }
+        #pdfDropZone { display:block; padding:16px; margin-bottom:12px; border:1px dashed #a855f788; border-radius:12px; background:#a855f710; text-align:center; cursor:pointer; }
+        #pdfDropZone.drag-over { border-color:#fbbf24; background:#f59e0b22; }
+        #pdfFileInput { width:100%; margin-top:10px; font-size:11px; }
+        #importStatus { font-size:12px; color:#c4b5fd; white-space:pre-wrap; } #importStatus.error { color:#fda4af; }
+        #pdfPasswordArea { margin:10px 0; gap:8px; } #pdfPasswordBtn { padding:8px; background:#7c3aed; white-space:nowrap; }
+        .space-y-3>div+div { margin-top:12px; } #cancelCustomBtn,#applyCustomBtn { padding:9px 16px; } #applyCustomBtn { background:#e11d48; border-color:#fb7185; color:#fff; }
+        @media(max-width:700px) {
+            :root { --rail-left:54px; --rail-right:56px; }
+            .rail { top:6px; bottom:6px; padding:5px; gap:7px; border-radius:12px; }
+            #leftRail { left:4px; width:46px; } #rightRail { right:4px; width:48px; }
+            .brand,#paperSelect,#openCustomModalBtn span { display:none; }
+            #openCustomModalBtn { padding:10px 0; }
+            .page-controls { grid-template-columns:1fr; gap:6px; }
+            #pageIndicator { font-size:9px; overflow-wrap:anywhere; }
+            #viewModeBtn { font-size:9px; padding:2px; }
+            .rail-actions { grid-template-columns:1fr; }
+            .weapon-btn { min-height:62px; font-size:9px; } .weapon-btn svg { width:26px; }
+            #acceptBtn { font-size:9px; } #flightBtn { font-size:10px; }
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen overflow-hidden select-none">
+
+
+    <canvas id="gameCanvas"></canvas>
+    <aside id="leftRail" class="rail glass-panel" aria-label="文档与操作">
+        <div class="brand">PAPER SHREDDER</div>
+        <select id="paperSelect" aria-label="选择论文">
+            <option value="neurips">NeurIPS</option><option value="cvpr">CVPR</option><option value="nature">Nature</option><option value="physics">Physics</option>
+        </select>
+        <button id="openCustomModalBtn" title="导入 PDF 或文本" aria-label="导入 PDF 或文本"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></svg><span>导入</span></button>
+        <nav class="page-controls" aria-label="翻页"><span id="pageIndicator" aria-live="polite">01 / 03</span><button id="prevPageBtn" title="上一页（[）" aria-label="上一页">‹</button><button id="nextPageBtn" title="下一页（]）" aria-label="下一页">›</button></nav>
+        <button id="viewModeBtn" title="单页 / 双页（V）" aria-label="切换单页或双页">双页</button>
+        <div class="rail-spacer"></div>
+        <div class="rail-actions"><button id="rewindBtn" title="复原（R）" aria-label="复原"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 10h9a7 7 0 0 1 0 14M4 10l5-5m-5 5 5 5" transform="translate(0 -3)"/></svg></button><button id="acceptBtn" title="accept（G）">accept</button><button id="audioToggleBtn" title="音效" aria-label="切换音效" aria-pressed="true"><svg id="audioOnIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9h4l5-5v16l-5-5H4zM16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></svg><svg id="audioOffIcon" class="hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 9h4l5-5v16l-5-5H4zM17 9l5 6m0-6-5 6"/></svg></button></div>
+    </aside>
+    <aside id="rightRail" class="rail glass-panel" aria-label="武器">
+        <button data-weapon="0" class="weapon-btn active" style="--weapon-color:#f43f5e" title="加特林（1）"><svg viewBox="0 0 36 28" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="2" y="8" width="15" height="12" rx="3"/><path d="M17 9h16v3H17m0 3h16v3H17M7 20v5h6v-5M29 6v16"/></svg><span>加特林</span></button>
+        <button data-weapon="1" class="weapon-btn" style="--weapon-color:#a855f7" title="黑洞（2，按住左键蓄力）"><svg viewBox="0 0 36 28" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="18" cy="14" r="6"/><ellipse cx="18" cy="14" rx="16" ry="6" transform="rotate(-25 18 14)"/><ellipse cx="18" cy="14" rx="11" ry="12" transform="rotate(35 18 14)"/></svg><span>黑洞</span></button>
+        <button data-weapon="2" class="weapon-btn" style="--weapon-color:#ec4899" title="镭射（3）"><svg viewBox="0 0 36 28" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="9" width="15" height="10" rx="3"/><path d="M7 6v16m5-16v16m4-8h19m-17-4 16-3m-16 11 16 3"/></svg><span>镭射</span></button>
+        <button data-weapon="3" class="weapon-btn" style="--weapon-color:#f59e0b" title="重锤（4，按住左键蓄力）"><svg viewBox="0 0 36 28" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m8 25 14-14"/><rect x="15" y="2" width="17" height="13" rx="2" transform="rotate(40 23 9)"/></svg><span>重锤</span></button>
+        <button data-weapon="4" class="weapon-btn" style="--weapon-color:#67e8f9" title="剑（5，点击挥砍，按住蓄力后松开发射剑气）"><svg viewBox="0 0 36 28" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m8 25 7-7m-5-5 9 9m-5-7L29 2l-4 14-8 3M5 23l4 4"/></svg><span>剑</span></button>
+        <div class="rail-spacer"></div>
+        <button id="flightBtn" aria-pressed="false" title="飞升（F），WASD 飞行">飞升</button>
+    </aside>
+
+    <div id="customModal" class="fixed inset-0 z-50 bg-black/75 backdrop-blur-md hidden items-center justify-center p-4">
+        <div class="glass-panel rounded-3xl max-w-lg w-full p-6 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+                    导入
+                </h3>
+                <button id="closeCustomModalBtn" class="text-slate-400 hover:text-white p-1">✕</button>
+            </div>
+<label id="pdfDropZone" for="pdfFileInput">
+                <strong>选择或拖入 PDF</strong>
+                <input id="pdfFileInput" type="file" accept=".pdf,application/pdf">
+            </label>
+            <p id="importStatus" role="status" aria-live="polite"></p>
+            <div id="pdfPasswordArea" class="hidden">
+                <input id="pdfPasswordInput" type="password" placeholder="输入 PDF 打开密码" aria-label="PDF 打开密码" autocomplete="off">
+                <button id="pdfPasswordBtn">解锁 PDF</button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">标题</label>
+                    <input id="customTitleInput" type="text" class="w-full rounded-xl bg-slate-900/90 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" placeholder="标题（可选）">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">文本</label>
+                    <textarea id="customBodyInput" rows="5" class="w-full rounded-xl bg-slate-900/90 border border-slate-700 px-3 py-2 text-sm text-white focus:outline-none focus:border-rose-500" placeholder="粘贴文本"></textarea>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2.5 mt-5">
+                <button id="cancelCustomBtn" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300">取消</button>
+                <button id="applyCustomBtn" class="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-bold text-white shadow-lg shadow-rose-600/30">使用文本</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="./audio.js"></script>
+    <script>
+        const sfx = new SoundEffects();
+
+        const PAPER_TEMPLATES = {
+            neurips: {
+                venue: "Published as a Conference Paper at NeurIPS 2026 (Spotlight Reject)",
+                title: "On the Asymptotic Convergence of Non-Convex Stochastic Gradient Descent Under Extreme 3:00 AM Deadline Pressure",
+                authors: "Sanity-Depleted Grad Student¹, Coffee Machine², CUDA Out-Of-Memory³, Reviewer #2⁴",
+                affil: "¹Department of Sleepless Nights  ²Laboratory of Hyperparameter Tuning  ³NVIDIA GPU Cluster",
+                abstract: "We investigate the catastrophic divergence of graduate student mental health when training deep neural architectures twelve hours before the submission deadline. Despite theoretical guarantees that loss should decrease monotonically, our empirical observations prove that changing a single random seed from 42 to 3407 causes validation accuracy to collapse into NaN.",
+                sec1Title: "1. Introduction & Motivation",
+                sec1Body: "Modern deep learning relies heavily on Proof-by-Intuition and Grad-Student-Descent (GSD). Previous works claim state-of-the-art performance, yet fail to reproduce when the learning rate η = 1e-4 is perturbed by cosmic rays. Furthermore, Reviewer #2 insists that we compare our lightweight 2M parameter model against a 175B proprietary foundation model trained on 10,000 H100 GPUs.",
+                sec2Title: "2. Stochastic Variational Formulation",
+                sec2Pre: "Let θ ∈ ℝ^d denote the caffeine concentration in bloodstream. The intractable objective function L(θ) under deadline constraint T → 0 is formulated as:",
+                equation1: "L(θ) = ∫ ∇_θ log p(x | θ) dx + λ ∑_{i=1}^∞ (α_i · β_i) / √(2πσ²)",
+                equation2: "𝔼_{ξ~𝒩(0,I)} [ ‖ ∇f(θ_t) - H⁻¹ ∮ ∂Ω / ∂t ‖₂² ] ≥ ∞ (NaN)",
+                sec2Post: "where λ → ∞ represents advisor expectations and σ² denotes variance across random seeds. Integrating by parts yields an unavoidable CUDA runtime error.",
+                figTitle: "Figure 1: GPU Memory Explosion vs. Ours ( dashed )",
+                tableTitle: "Table 1: Ablation Study on Sleep Deprivation",
+                sec3Title: "3. Conclusion & Future Breakdown",
+                sec3Body: "We have demonstrated that destroying this paper with a high-velocity Gatling gun or singularity launcher restores graduate sanity by 100%. Future work includes teleporting Reviewer #2 into a black hole."
+            },
+            cvpr: {
+                venue: "CVPR 2026 Submission #8848 · Confidential Review Copy",
+                title: "SOTA-Net++: Adding Three More Attention Modules and a Fancy Teaser Figure to Beat the Baseline by 0.02% mAP",
+                authors: "First Author*¹, Co-First Author*¹, Senior Postdoc¹, Invisible Advisor¹",
+                affil: "¹Institute of Cherry-Picked Qualitative Results & Overfitting",
+                abstract: "In computer vision, marginal improvements require maximal architectural complexity. We propose SOTA-Net++, a novel transformer-diffusion-mamba hybrid framework that concatenates multi-scale features with kitchen-sink loss functions. By carefully selecting validation crops, we surpass prior art by +0.02% on COCO while increasing FLOPs by 450%.",
+                sec1Title: "1. Introduction",
+                sec1Body: "Vision transformers have revolutionized feature extraction, yet Reviewer #2 still asks 'Where is the novelty? It looks like A + B.' To address this critical concern, we rename standard Cross-Attention to Quantum-Synergistic Spatio-Temporal Token Routing (QSSTTR) and draw a colorful 3D diagram.",
+                sec2Title: "2. Synergistic Token Formulation",
+                sec2Pre: "Given input tensor X ∈ ℝ^{H×W×C}, our multi-head self-sabotage projection computes attention weights via:",
+                equation1: "Attn(Q, K, V) = softmax( (Q · K^T) / √d_k + Ψ_bias ) ⊗ ∇_x L_focal",
+                equation2: "L_total = λ₁ L_CE + λ₂ L_Dice + λ₃ L_LPIPS + λ₄ L_PrayToWork",
+                sec2Post: "Notice that tuning λ₁ through λ₄ requires 800 GPU hours and sacrifices three weekends of sunlight.",
+                figTitle: "Figure 1: Cherry-Picked SOTA Comparison (Zoom in 400%)",
+                tableTitle: "Table 1: Component Ablation (Bold = Ours)",
+                sec3Title: "3. Rebuttal Statement",
+                sec3Body: "We thank Reviewer #2 for their constructive 3-line review demanding 14 new datasets in 5 days. In response, we have equipped a high-energy thermal laser beam."
+            },
+            nature: {
+                venue: "Nature Reject Letters · Manuscript ID: NCOMMS-26-99412-T",
+                title: "Decision Letter: Your Manuscript Lacks Broad Appeal and Mechanistic Insight Into Reviewer #2'sUnreasonable Demands",
+                authors: "Editorial Board¹, Anonymous Reviewer #2 (Hostile)², Helpful Reviewer #1³",
+                affil: "¹Desk Reject Office  ²Competitor Lab Working on the Exact Same Topic",
+                abstract: "Dear Authors, while Reviewer #1 found your work 'groundbreaking and meticulously executed', Reviewer #2 raised severe methodological concerns regarding why you did not invent a time machine. Consequently, we cannot offer publication in Nature at this stage.",
+                sec1Title: "1. Reviewer #2 Comments to Author",
+                sec1Body: "The authors claim a novel mechanism, but they failed to cite my three unrelated papers from 1998. Moreover, the statistical significance (p = 0.0001) is unconvincing. I strongly recommend repeating all in-vivo and in-silico experiments at absolute zero temperature before I can consider this incremental work.",
+                sec2Title: "2. Quantitative Rejection Criterion",
+                sec2Pre: "The probability of acceptance P(Accept) given Reviewer #2's mood index μ_R2 is strictly bounded by:",
+                equation1: "P(Accept | R₂) = lim_{N_exp → ∞} exp( - ∑_{k=1}^N ‖ Rebuttal_k ‖² / 0 ) = 0",
+                equation2: "ΔSanity / Δt = - κ · (Major_Revision)² - ∫_0^T Reviewer_Comments(τ) dτ",
+                sec2Post: "Even when all 47 additional control experiments are completed, Reviewer #2 will simply reply: 'I remain unconvinced.'",
+                figTitle: "Figure 1: Reviewer #1 vs. Reviewer #2 Score Distribution",
+                tableTitle: "Table 1: Additional Experiments Requested in Rebuttal",
+                sec3Title: "3. Editorial Final Verdict",
+                sec3Body: "Press [1] for Gatling Gun or [4] for Sledgehammer to physically dismantle this decision letter and stamp ACCEPTED yourself."
+            },
+            physics: {
+                venue: "Physical Review Letters · PRL 137, 042026 (2026)",
+                title: "Non-Perturbative Renormalization Group Flow of Broken Boundary Conditions in High-Dimensional Tensor Networks",
+                authors: "E. Schrödinger's Cat¹, W. Heisenberg², M. Planck³, Tired PhD Candidate¹",
+                affil: "¹Institute for Theoretical Headache  ²Department of Minus Sign Errors",
+                abstract: "We derive the exact partition function of a frustrated spin-glass system coupled to an external deadline bath. After 45 pages of Matsubara frequency summations, we discovered a missing minus sign on page 2 that invalidates the entire phase diagram.",
+                sec1Title: "1. Hamiltonian & Path Integral",
+                sec1Body: "Consider a d-dimensional lattice where each site hosts a non-Abelian gauge field. When attempting to diagonalize the transfer matrix analytically, the indices proliferate faster than the page width allows, forcing us to use smaller font sizes.",
+                sec2Title: "2. Ward-Takahashi Identity & Saddle Point",
+                sec2Pre: "Evaluating the functional determinant around the instanton configuration yields the partition function Z:",
+                equation1: "Z[J] = ∫ 𝒟φ exp( i/ℏ ∫ d⁴x [ ½ ∂_μ φ ∂^μ φ - V(φ) + J·φ ] ) · Tr(γ⁵ ∏ σ_i)",
+                equation2: "⟨ Ω | T { ψ(x) ψ̄(y) } | Ω ⟩ = ∫ d⁴p/(2π)⁴ ( i(p̸ + m) / (p² - m² + iϵ) ) e^{-ip(x-y)}",
+                sec2Post: "where iϵ ensures causality and prevents the graduate student from dividing by zero during the oral defense.",
+                figTitle: "Figure 1: Phase Transition & Critical Exponent Collapse",
+                tableTitle: "Table 1: Critical Exponents Across Dimensions",
+                sec3Title: "3. Summary",
+                sec3Body: "Since analytical continuation is painful, we employ a gravitational singularity launcher [Weapon 2] to collapse all Feynman diagrams simultaneously."
+            }
+        };
+
+        const GATLING_TEXTS = [
+            "REJECT!", "Lacks Novelty", "p > 0.05", "Cite My Paper!",
+            "Overclaiming", "More Ablations", "Unconvincing", "Incremental",
+            "CUDA OOM", "NaN Loss", "Major Revision", "Typo in Eq.2",
+            "Marginal Contribution", "Unreliable Data", "Outdated Topic", "Fluctuant Results"
+        ];
+
+        const HIGHLIGHTER_COLORS = [
+            "#f43f5e", // Highlighter Rose Red
+            "#facc15", // Neon Yellow
+            "#38bdf8", // Electric Cyan
+            "#a855f7", // Neon Purple
+            "#4ade80", // Highlighter Green
+            "#fb923c"  // Vivid Orange
+        ];
+
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // All weapon residue shares one fading layer, including hammer fractures.
+        const damageCanvas = document.createElement('canvas');
+        const damageCtx = damageCanvas.getContext('2d');
+        const residueCanvas = document.createElement('canvas');
+        const residueCtx = residueCanvas.getContext('2d');
+        const lensCanvas = document.createElement('canvas');
+        const rewindEcho = document.createElement('canvas');
+        let pixelRatio = 1;
+        const DAMAGE_LIFETIME = 4;
+        let damageIdleTime = DAMAGE_LIFETIME;
+        let damageFadeAccumulator = 0;
+
+        let W = window.innerWidth;
+        let H = window.innerHeight;
+
+        const paperRect = {
+            x: 0,
+            y: 0,
+            w: 820,
+            h: 1020
+        };
+
+        // Game state
+        let currentTemplateKey = 'neurips';
+        let currentWeapon = 0; // 0: Gatling, 1: BlackHole, 2: Laser, 3: Hammer
+        let hitStopTimer = 0;
+        let screenShake = { x: 0, y: 0, vx: 0, vy: 0, intensity: 0 };
+        let screenFlash = 0;
+        let rewindMode = false;
+        let rewindTimer = 0;
+        let forceAccepted = false;
+        let acceptStampScale = 0;
+        let currentPage = 0;
+        const pageStates = new Map();
+        let customPages = [];
+        let importedPdf = null;
+        let currentPdfPageData = null;
+        let pdfPageError = '';
+        let pdfLibraryPromise = null;
+        let pdfImportTask = null;
+        let pdfImportSequence = 0;
+        let pdfPageSequence = 0;
+        let pdfPasswordCallback = null;
+        let pdfViewMode = 'auto';
+        let audioFocused = true;
+        const PLAYER_SCALE = .62;
+        const SCREEN_SHAKE_SCALE = 3;
+        const MAX_SCREEN_SHAKE = 2;
+        const RECOIL_SCALE = .8;
+        const charge = { active: false, elapsed: 0, max: 1.8, weapon: -1, pulse: 0 };
+        let hammerWaves = [];
+        let swordWaves = [];
+        let swordSlashes = [];
+        let flight = false;
+        let flightEmission = 0;
+        let weaponHeat = 0;
+
+        // Collections
+        let wordBodies = [];
+        let platforms = [];
+        let bullets = [];
+        let shells = [];
+        let blackHoles = [];
+        let particles = [];
+        let shockwaves = [];
+
+        // Input state
+        const keys = { w: false, a: false, s: false, d: false, space: false };
+        const mouse = { x: W * 0.6, y: H * 0.4, down: false };
+
+        class Stickman {
+            constructor() {
+                this.x = 0;
+                this.y = 0;
+                this.vx = 0;
+                this.vy = 0;
+                this.radius = 12 * PLAYER_SCALE;
+                this.height = 54 * PLAYER_SCALE;
+                this.onGround = false;
+                this.jumpsLeft = 2;
+                this.facing = 1;
+                this.walkCycle = 0;
+                this.aimAngle = 0;
+                this.recoilOffset = 0;
+                this.hammerSwing = 0; // >0 when swinging hammer
+                this.hammerCooldown = 0;
+                this.swordSwing = 0;
+                this.fireCooldown = 0;
+
+                // Verlet Scarf (10 segments trailing from neck)
+                this.scarf = [];
+                for (let i = 0; i < 11; i++) {
+                    this.scarf.push({ x: 0, y: 0, oldX: 0, oldY: 0 });
+                }
+            }
+
+            resetPosition() {
+                this.x = paperRect.x + paperRect.w * 0.22;
+                this.y = paperRect.y + 180;
+                this.vx = 0;
+                this.vy = 0;
+                this.jumpsLeft = 2;
+                this.scarf.forEach(p => {
+                    p.x = this.x;
+                    p.y = this.y;
+                    p.oldX = this.x;
+                    p.oldY = this.y;
+                });
+            }
+
+            update(dt) {
+                const moveSpeed = 520;
+                const accel = this.onGround ? 3800 : 2200;
+
+                if (keys.a) {
+                    this.vx = Math.max(this.vx - accel * dt, -moveSpeed);
+                } else if (keys.d) {
+                    this.vx = Math.min(this.vx + accel * dt, moveSpeed);
+                } else {
+                    // Friction
+                    this.vx *= this.onGround ? Math.pow(0.0008, dt) : Math.pow(0.15, dt);
+                    if (Math.abs(this.vx) < 5) this.vx = 0;
+                }
+
+                if (flight) {
+                    const vertical = (keys.s ? 1 : 0) - (keys.w ? 1 : 0);
+                    this.vy += (vertical * 390 - this.vy) * Math.min(1, dt * 9);
+                    flightEmission += dt;
+                    while (flightEmission >= 0.025) {
+                        flightEmission -= 0.025;
+                        emitSparks(this.x + (Math.random() - .5) * 22, this.y - 14, 2, ['#ef4444', '#f59e0b', '#fde68a'], 90, 0, 150);
+                    }
+                } else {
+                    this.vy += 1680 * dt;
+                }
+
+                const prevY = this.y;
+                this.x += this.vx * dt;
+                this.y += this.vy * dt;
+                if (this.y < paperRect.y + 66 * PLAYER_SCALE) { this.y = paperRect.y + 66 * PLAYER_SCALE; this.vy = Math.max(0, this.vy); }
+
+                // Keep within viewport bounds with soft bounce
+                const stage = getStageRect();
+                const minX = stage.x + 8;
+                const maxX = stage.x + stage.w - 8;
+                if (this.x < minX) { this.x = minX; this.vx = 0; }
+                if (this.x > maxX) { this.x = maxX; this.vx = 0; }
+
+                // Platform & Floor Collisions
+                this.onGround = false;
+                const floorY = paperRect.y + paperRect.h - 14;
+
+                if (this.y >= floorY) {
+                    this.y = floorY;
+                    this.vy = 0;
+                    this.onGround = true;
+                    this.jumpsLeft = 2;
+                } else if (!flight && this.vy >= 0 && !keys.s) {
+                    // Check semi-solid section platforms
+                    for (const plat of platforms) {
+                        if (
+                            this.x >= plat.x - 10 &&
+                            this.x <= plat.x + plat.w + 10 &&
+                            prevY <= plat.y + 4 &&
+                            this.y >= plat.y
+                        ) {
+                            this.y = plat.y;
+                            this.vy = 0;
+                            this.onGround = true;
+                            this.jumpsLeft = 2;
+                            break;
+                        }
+                    }
+                }
+
+                // Aiming angle toward mouse
+                const shoulderX = this.x;
+                const shoulderY = this.y - 42 * PLAYER_SCALE;
+                this.aimAngle = Math.atan2(mouse.y - shoulderY, mouse.x - shoulderX);
+                this.facing = Math.cos(this.aimAngle) >= 0 ? 1 : -1;
+
+                // Walk cycle animation phase
+                if (this.onGround && Math.abs(this.vx) > 15) {
+                    this.walkCycle += Math.abs(this.vx) * dt * 0.042;
+                } else if (this.onGround) {
+                    this.walkCycle *= 0.85;
+                } else {
+                    this.walkCycle += 2.5 * dt;
+                }
+
+                // Decay weapon recoil & hammer swing
+                this.recoilOffset *= Math.pow(0.001, dt);
+                if (this.hammerSwing > 0) {
+                    this.hammerSwing = Math.max(0, this.hammerSwing - dt * 4.2);
+                }
+                if (this.hammerCooldown > 0) this.hammerCooldown -= dt;
+                this.swordSwing = Math.max(0, this.swordSwing - dt * 5);
+                if (this.fireCooldown > 0) this.fireCooldown -= dt;
+
+                // Update Verlet Red Scarf
+                const neckX = this.x - this.facing * 3;
+                const neckY = this.y - 40;
+                this.scarf[0].x = neckX;
+                this.scarf[0].y = neckY;
+
+                const windX = -this.vx * 0.015 - Math.cos(this.aimAngle) * this.recoilOffset * 0.8 + (Math.sin(performance.now() * 0.008) * 0.4);
+                const gravityY = 0.35;
+
+                for (let i = 1; i < this.scarf.length; i++) {
+                    const p = this.scarf[i];
+                    const vx = (p.x - p.oldX) * 0.92;
+                    const vy = (p.y - p.oldY) * 0.92;
+                    p.oldX = p.x;
+                    p.oldY = p.y;
+                    p.x += vx + windX + (Math.random() - 0.5) * 0.3;
+                    p.y += vy + gravityY;
+                }
+
+                // Distance constraints for scarf
+                const segLen = 5.2;
+                for (let iter = 0; iter < 4; iter++) {
+                    this.scarf[0].x = neckX;
+                    this.scarf[0].y = neckY;
+                    for (let i = 0; i < this.scarf.length - 1; i++) {
+                        const p1 = this.scarf[i];
+                        const p2 = this.scarf[i + 1];
+                        const dx = p2.x - p1.x;
+                        const dy = p2.y - p1.y;
+                        const dist = Math.hypot(dx, dy) || 0.001;
+                        const diff = (dist - segLen) / dist;
+                        if (i === 0) {
+                            p2.x -= dx * diff;
+                            p2.y -= dy * diff;
+                        } else {
+                            p1.x += dx * diff * 0.5;
+                            p1.y += dy * diff * 0.5;
+                            p2.x -= dx * diff * 0.5;
+                            p2.y -= dy * diff * 0.5;
+                        }
+                    }
+                }
+            }
+
+            jump() {
+                if (flight) return;
+                if (this.jumpsLeft > 0) {
+                    this.vy = -660;
+                    this.onGround = false;
+                    this.jumpsLeft--;
+                    // Jump dust particles
+                    for (let i = 0; i < 8; i++) {
+                        particles.push({
+                            x: this.x + (Math.random() - 0.5) * 16,
+                            y: this.y,
+                            vx: (Math.random() - 0.5) * 140 - this.vx * 0.2,
+                            vy: -Math.random() * 80,
+                            size: 2.5 + Math.random() * 3,
+                            color: '#64748b',
+                            life: 0.35,
+                            maxLife: 0.35,
+                            glow: false
+                        });
+                    }
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y); ctx.scale(PLAYER_SCALE, PLAYER_SCALE); ctx.translate(-this.x, -this.y);
+                if (flight) drawFlightAura(ctx, this);
+
+                // 1. Draw flowing Crimson Scarf first (behind weapon/head)
+                ctx.beginPath();
+                ctx.moveTo(this.scarf[0].x, this.scarf[0].y);
+                for (let i = 1; i < this.scarf.length - 1; i++) {
+                    const xc = (this.scarf[i].x + this.scarf[i + 1].x) * 0.5;
+                    const yc = (this.scarf[i].y + this.scarf[i + 1].y) * 0.5;
+                    ctx.quadraticCurveTo(this.scarf[i].x, this.scarf[i].y, xc, yc);
+                }
+                ctx.strokeStyle = '#f43f5e';
+                ctx.lineWidth = 6.5;
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.shadowColor = 'rgba(244, 63, 94, 0.55)';
+                ctx.shadowBlur = 10;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // Body lean based on horizontal velocity & recoil
+                const lean = (this.vx / 520) * 8 - Math.cos(this.aimAngle) * this.recoilOffset * 0.6;
+                const hipX = this.x;
+                const hipY = this.y - 20;
+                const neckX = this.x + lean;
+                const neckY = this.y - 42;
+                const headX = neckX + lean * 0.35;
+                const headY = neckY - 12;
+
+                // Stickman shadow on ground/paper
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.22)';
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y + 1, 14, 4, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Stickman ink style (Dark Obsidian with subtle cyan rim on dark, crisp on white paper)
+                ctx.strokeStyle = flight ? '#fbbf24' : '#0f172a';
+                ctx.lineWidth = 4.6;
+                if (flight) { ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 14; }
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+
+                // 2. Procedural Legs (2-Bone Running/Jumping)
+                for (let side = -1; side <= 1; side += 2) {
+                    const phase = this.walkCycle + (side === 1 ? 0 : Math.PI);
+                    let footX, footY, kneeX, kneeY;
+
+                    if (this.onGround) {
+                        const stride = Math.min(Math.abs(this.vx) / 280, 1) * 14;
+                        footX = hipX + Math.sin(phase) * stride;
+                        footY = this.y + Math.min(0, Math.cos(phase) * stride * 0.45);
+                        kneeX = (hipX + footX) * 0.5 + this.facing * 5;
+                        kneeY = (hipY + footY) * 0.5 - 2;
+                    } else {
+                        // Mid-air pose
+                        footX = hipX + side * 7 - Math.clamp(this.vx * 0.02, -8, 8);
+                        footY = this.y - 4 + side * 3;
+                        kneeX = hipX + this.facing * 8 + side * 3;
+                        kneeY = hipY + 9;
+                    }
+
+                    ctx.beginPath();
+                    ctx.moveTo(hipX, hipY);
+                    ctx.lineTo(kneeX, kneeY);
+                    ctx.lineTo(footX, footY);
+                    ctx.stroke();
+                }
+
+                // 3. Spine / Torso
+                ctx.beginPath();
+                ctx.moveTo(hipX, hipY);
+                ctx.lineTo(neckX, neckY);
+                ctx.stroke();
+
+                // 4. Head + Expressive Glowing Eyes
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(headX, headY, 10.5, 0, Math.PI * 2);
+                ctx.fill();
+                // White outline so stickman pops even on scorched dark spots
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 1.2;
+                ctx.stroke();
+
+                // Angry glowing eyes (Reviewer #2 rage mode)
+                const eyeDirX = Math.cos(this.aimAngle) * 3.5;
+                const eyeDirY = Math.sin(this.aimAngle) * 2.5;
+                ctx.fillStyle = '#f43f5e';
+                ctx.shadowColor = '#f43f5e';
+                ctx.shadowBlur = 8;
+                ctx.beginPath();
+                ctx.arc(headX + eyeDirX + 2.5 * this.facing, headY + eyeDirY - 1, 2.1, 0, Math.PI * 2);
+                ctx.arc(headX + eyeDirX - 1.5 * this.facing, headY + eyeDirY - 1, 1.8, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+
+                // 5. Weapon & Arms rendering
+                this.drawWeaponAndArms(ctx, neckX, neckY);
+
+                ctx.restore();
+            }
+
+            drawWeaponAndArms(ctx, shoulderX, shoulderY) {
+                ctx.save();
+                ctx.translate(shoulderX, shoulderY);
+
+                let renderAngle = this.aimAngle;
+                if (currentWeapon === 4) renderAngle += (this.swordSwing > 0 ? (1 - this.swordSwing) * 2.1 - 1.05 : -.45) * this.facing;
+                const weaponFacing = Math.cos(this.aimAngle) >= 0 ? 1 : -1;
+                if (currentWeapon === 3 && charge.active) renderAngle -= weaponFacing * (0.35 + charge.elapsed / charge.max * 1.25);
+                if (currentWeapon === 3 && this.hammerSwing > 0) {
+                    // Swing animation arc for Giant Sledgehammer
+                    const swingProgress = 1 - this.hammerSwing;
+                    const swingArc = (swingProgress * 2.6 - 1.1) * weaponFacing;
+                    renderAngle += swingArc;
+                }
+
+                ctx.rotate(renderAngle);
+                const rx = -this.recoilOffset; // Kickback along barrel
+
+                // Draw Stickman Hands holding weapon
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(12 + rx, 5);
+                ctx.lineTo(22 + rx, 1);
+                ctx.stroke();
+
+                if (currentWeapon === 0) {
+                    // [1] Reviewer #2 Heavy Gatling Minigun
+                    ctx.fillStyle = '#1e293b';
+                    ctx.strokeStyle = '#f43f5e';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.roundRect(8 + rx, -6, 30, 12, 3);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Rotating multi-barrels
+                    const spinOffset = (performance.now() * 0.03) % 6;
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(36 + rx, -5, 22, 3);
+                    ctx.fillRect(36 + rx, -1 + (spinOffset > 3 ? 1 : 0), 22, 3);
+                    ctx.fillRect(36 + rx, 3, 22, 3);
+
+                    // Glowing muzzle ring
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.fillRect(54 + rx, -6, 4, 13);
+                    ctx.fillStyle = '#94a3b8';
+                    for (let i = 0; i < 4; i++) ctx.fillRect(12 + rx + i * 5, -3, 2, 6);
+                    ctx.fillStyle = '#fbbf24'; ctx.fillRect(18 + rx, 7, 5, 5); ctx.fillRect(24 + rx, 7, 5, 5);
+                } else if (currentWeapon === 1) {
+                    // [2] Gradient Explosion Singularity Launcher
+                    ctx.fillStyle = '#1e1b4b';
+                    ctx.strokeStyle = '#a855f7';
+                    ctx.lineWidth = 1.8;
+                    ctx.beginPath();
+                    ctx.roundRect(6 + rx, -8, 38, 16, 6);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Glowing purple core orb at muzzle
+                    ctx.fillStyle = '#c084fc';
+                    ctx.shadowColor = '#a855f7';
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.arc(46 + rx, 0, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                    ctx.strokeStyle = '#38bdf8'; ctx.lineWidth = 1;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath(); ctx.ellipse(20 + rx + i * 8, 0, 2, 9, 0, 0, Math.PI * 2); ctx.stroke();
+                    }
+                } else if (currentWeapon === 2) {
+                    // [3] DDL High-Energy Thermal Laser Emitter
+                    ctx.fillStyle = '#0f172a';
+                    ctx.strokeStyle = '#ec4899';
+                    ctx.lineWidth = 1.8;
+                    ctx.beginPath();
+                    ctx.roundRect(8 + rx, -5, 40, 10, 4);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    // Neon gold/magenta coil fins
+                    ctx.fillStyle = '#f472b6';
+                    ctx.fillRect(20 + rx, -8, 4, 16);
+                    ctx.fillRect(30 + rx, -8, 4, 16);
+                    ctx.fillStyle = '#fef08a'; ctx.fillRect(39 + rx, -2, 12, 4);
+                    ctx.fillStyle = '#475569'; ctx.fillRect(10 + rx, 6, 8, 4);
+                } else if (currentWeapon === 3) {
+                    // [4] Baseline Crusher Giant Sledgehammer
+                    // Long handle
+                    ctx.strokeStyle = '#78350f';
+                    ctx.lineWidth = 4.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-6, 0);
+                    ctx.lineTo(52, 0);
+                    ctx.stroke();
+
+                    // Oversized Neon-Edged Warhammer Head
+                    ctx.fillStyle = '#1e293b';
+                    ctx.strokeStyle = '#f59e0b';
+                    ctx.lineWidth = 2.5;
+                    ctx.shadowColor = 'rgba(245, 158, 11, 0.6)';
+                    ctx.shadowBlur = 12;
+                    ctx.beginPath();
+                    ctx.roundRect(42, -22, 22, 44, 4);
+                    ctx.fill();
+                    ctx.stroke();
+                    ctx.shadowBlur = 0;
+
+                    // Impact warning stripes
+                    ctx.fillStyle = '#fbbf24';
+                    ctx.fillRect(46, -16, 14, 4);
+                    ctx.fillRect(46, 12, 14, 4);
+                } else if (currentWeapon === 4) {
+                    ctx.strokeStyle = '#64748b'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(9, 0); ctx.lineTo(24, 0); ctx.stroke();
+                    ctx.strokeStyle = flight ? '#fbbf24' : '#67e8f9'; ctx.lineWidth = 3;
+                    ctx.beginPath(); ctx.moveTo(23, -9); ctx.lineTo(23, 9); ctx.stroke();
+                    ctx.fillStyle = '#dffbff'; ctx.shadowColor = flight ? '#ef4444' : '#22d3ee'; ctx.shadowBlur = 13;
+                    ctx.beginPath(); ctx.moveTo(27, -3); ctx.lineTo(76, -1); ctx.lineTo(86, -6); ctx.lineTo(77, 4); ctx.lineTo(27, 3); ctx.closePath(); ctx.fill(); ctx.stroke();
+                }
+
+                if (flight) {
+                    ctx.globalCompositeOperation = 'lighter'; ctx.strokeStyle = '#fde68a'; ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 18; ctx.lineWidth = 1.5;
+                    for (let i = 0; i < 3; i++) {
+                        ctx.beginPath(); ctx.ellipse(20 + i * 10, 0, 4, 11 + Math.sin(performance.now() * .008 + i) * 3, 0, 0, Math.PI * 2); ctx.stroke();
+                    }
+                    ctx.strokeStyle = '#f43f5e'; ctx.beginPath(); ctx.moveTo(8, -10); ctx.lineTo(42, -13); ctx.lineTo(60, 0); ctx.lineTo(42, 13); ctx.lineTo(8, 10); ctx.stroke();
+                }
+
+                ctx.restore();
+            }
+        }
+
+        Math.clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+        const stickman = new Stickman();
+
+        function emitSparks(x, y, count, colors, speed = 240, biasX = 0, biasY = 0) {
+            for (let i = 0; i < count; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const life = .2 + Math.random() * .35;
+                particles.push({ x, y, vx: Math.cos(a) * speed + biasX, vy: Math.sin(a) * speed + biasY,
+                    size: 1 + Math.random() * 2.3, color: colors[i % colors.length], life, maxLife: life, glow: true });
+            }
+        }
+
+        function weaponPose() {
+            const angle = stickman.aimAngle, dirX = Math.cos(angle), dirY = Math.sin(angle);
+            const lean = (stickman.vx / 520) * 8 - dirX * stickman.recoilOffset * .6;
+            const shoulderX = stickman.x + lean * PLAYER_SCALE, shoulderY = stickman.y - 42 * PLAYER_SCALE;
+            return { angle, dirX, dirY, shoulderX, shoulderY,
+                muzzleX: shoulderX + dirX * 52 * PLAYER_SCALE, muzzleY: shoulderY + dirY * 52 * PLAYER_SCALE };
+        }
+
+        function drawSpaceCollapse(well) {
+            const radius = well.pullRadius * .66 * Math.sqrt(Math.max(.002, well.collapse));
+            if (radius < 12) return;
+            const span = 544, pixels = Math.ceil(span * pixelRatio);
+            if (lensCanvas.width !== pixels) { lensCanvas.width = pixels; lensCanvas.height = pixels; }
+            const lens = lensCanvas.getContext('2d'); lens.clearRect(0, 0, pixels, pixels);
+            lens.drawImage(canvas, (well.x - span / 2 + screenShake.x) * pixelRatio, (well.y - span / 2 + screenShake.y) * pixelRatio,
+                span * pixelRatio, span * pixelRatio, 0, 0, pixels, pixels);
+            for (let i = 0; i < 12; i++) {
+                const outer = radius * (1 - i / 12), inner = radius * (1 - (i + 1) / 12), mid = (outer + inner) / 2;
+                const deflection = 26 * Math.sin(well.collapse * Math.PI / 2) * Math.pow(1 - mid / radius, 2);
+                const scale = mid / (mid + deflection);
+                ctx.save(); ctx.beginPath(); ctx.arc(well.x, well.y, outer, 0, Math.PI * 2);
+                ctx.moveTo(well.x + inner, well.y); ctx.arc(well.x, well.y, inner, 0, Math.PI * 2, true); ctx.clip('evenodd');
+                ctx.drawImage(lensCanvas, well.x - span * scale / 2, well.y - span * scale / 2, span * scale, span * scale); ctx.restore();
+            }
+            ctx.save(); ctx.strokeStyle = well.ascended ? '#fbbf2420' : '#a5b4fc20'; ctx.lineWidth = .7;
+            for (let i = 0; i < 8; i++) {
+                const a = i * Math.PI / 4 + well.phase * .015;
+                ctx.beginPath();
+                for (let j = 0; j <= 16; j++) {
+                    const t = j / 16, r = well.radius * 2 + t * radius, theta = a + (1 - t) ** 2 * 1.4 * well.collapse;
+                    const x = well.x + Math.cos(theta) * r, y = well.y + Math.sin(theta) * r;
+                    if (!j) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawTimeRewind() {
+            const progress = Math.clamp(rewindTimer / 1.1, 0, 1), envelope = Math.sin(progress * Math.PI);
+            const x = paperRect.x + paperRect.w / 2, y = paperRect.y + paperRect.h / 2;
+            ctx.save(); ctx.globalAlpha = envelope * .18;
+            for (let i = 0; i < 9; i++) {
+                const stripH = H / 9, offset = Math.sin(i * 1.7 - progress * 20) * 16 * envelope;
+                ctx.drawImage(rewindEcho, 0, i * stripH, W, stripH, offset, i * stripH, W, stripH);
+            }
+            ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = envelope * .12;
+            ctx.fillStyle = '#06132b'; ctx.fillRect(paperRect.x, paperRect.y, paperRect.w, paperRect.h);
+            ctx.globalAlpha = envelope * .85;
+            ctx.strokeStyle = '#38bdf8'; ctx.shadowColor = '#818cf8'; ctx.shadowBlur = 14;
+            for (let i = 0; i < 6; i++) {
+                const radius = 35 + ((1 - progress + i / 6) % 1) * Math.min(paperRect.w, paperRect.h) * .45;
+                ctx.lineWidth = 1.2; ctx.beginPath(); ctx.ellipse(x, y, radius, radius * .38, -.25, -progress * 8 + i, -progress * 8 + i + 4.7); ctx.stroke();
+            }
+            const radius = Math.min(165, paperRect.w * .21);
+            for (let i = 0; i < 48; i++) {
+                const a = i * Math.PI / 24 - progress * 5, inner = radius - (i % 4 === 0 ? 13 : 5);
+                ctx.strokeStyle = i % 4 === 0 ? '#c4b5fd' : '#38bdf877'; ctx.lineWidth = i % 4 === 0 ? 2 : 1;
+                ctx.beginPath(); ctx.moveTo(x + Math.cos(a) * inner, y + Math.sin(a) * inner);
+                ctx.lineTo(x + Math.cos(a) * radius, y + Math.sin(a) * radius); ctx.stroke();
+            }
+            ctx.strokeStyle = '#818cf8'; ctx.lineWidth = 2; ctx.globalAlpha = envelope * .5;
+            ctx.strokeRect(paperRect.x + 3, paperRect.y + 3, paperRect.w - 6, paperRect.h - 6); ctx.restore();
+        }
+
+        function getPageTemplate() {
+            const base = PAPER_TEMPLATES[currentTemplateKey];
+            if (currentPage === 0 || currentTemplateKey === 'custom') return base;
+            if (currentPage === 1) return { ...base,
+                title: 'Methods & Optimization: ' + base.title,
+                abstract: 'Supplementary methods for this fictional manuscript. We describe the optimization schedule, the assumptions behind our equations, and the experimental controls requested during major revision. Every symbol on this page can be independently dismantled.',
+                sec1Title: '4. Optimization Protocol',
+                sec1Body: base.sec2Pre + ' ' + base.sec2Post + ' We repeat each run with five random seeds and report the full distribution rather than the most convenient checkpoint. The caffeine budget is held constant across all baselines.',
+                sec2Title: '5. Stability & Convergence',
+                sec2Pre: 'The following objective penalizes deadline pressure and unstable gradients. Its assumptions fail whenever the advisor adds another baseline at midnight:',
+                sec2Post: 'No convergence guarantee is claimed under an infinite revision horizon. Gradient clipping and one uninterrupted night of sleep form our principal regularizers.',
+                figTitle: 'Figure 2. Optimization stability under increasingly unreasonable revision requests.',
+                tableTitle: 'Table 2. Sensitivity to seed, caffeine, and reviewer temperature.',
+                sec3Title: '6. Implementation Details',
+                sec3Body: 'All settings are recorded before training. Failed runs remain in the log. Reviewer #2 nevertheless requests a new architecture and fourteen additional datasets. Please use the charged singularity launcher for an appropriate response.' };
+            return { ...base,
+                title: 'Experiments, Limitations & Appendix',
+                abstract: 'Additional experiments for: ' + base.title + '. This page collects robustness checks, ablations, limitations, and the final response to the reviewers. These are fictional stress-relief targets, not actual scientific findings.',
+                sec1Title: '7. Robustness & Reproducibility',
+                sec1Body: 'We evaluate distribution shifts, noisy labels, and missing observations. Performance fluctuates across seeds, so uncertainty accompanies every average. Marginal Contribution, Unreliable Data, Outdated Topic, and Fluctuant Results are the four recurring objections in our review.',
+                sec2Title: 'A. Supplementary Derivation',
+                sec2Pre: base.sec2Pre,
+                sec2Post: 'The derivation assumes finite compute, independent samples, and a reviewer who has read the methods. Violating any one of these assumptions invalidates the comforting interpretation of the result.',
+                figTitle: 'Figure 3. Ablation of sleep, compute, and hope. Error bars omitted by Reviewer #2.',
+                tableTitle: 'Table 3. Reproducibility checks and final ablation results.',
+                sec3Title: '8. Limitations & Future Work',
+                sec3Body: base.sec3Body + ' Limitations include unrealistic deadlines and an unbounded review cycle. Future work: close the laptop, restore sanity, and leave the remaining revisions inside a black hole.' };
+        }
+
+        function pageCount() {
+            if (currentTemplateKey === 'pdf') return importedPdf?.doc.numPages || 1;
+            return currentTemplateKey === 'custom' ? Math.max(1, customPages.length) : 3;
+        }
+        function pdfPageStep() {
+            return currentTemplateKey === 'pdf' && W >= 900 && pdfViewMode !== 'single' && (pdfViewMode === 'double' || W >= 1250) ? 2 : 1;
+        }
+        function getStageRect() {
+            const left = document.getElementById('leftRail').getBoundingClientRect().right + 12;
+            const right = document.getElementById('rightRail').getBoundingClientRect().left - 12;
+            return { x: left, y: 12, w: Math.max(100, right - left), h: Math.max(180, H - 24) };
+        }
+        function updatePageControls() {
+            const step = pdfPageStep(), end = Math.min(pageCount(), currentPage + step);
+            document.getElementById('pageIndicator').textContent = `${String(currentPage + 1).padStart(2, '0')}${step === 2 && end > currentPage + 1 ? '–' + String(end).padStart(2, '0') : ''} / ${String(pageCount()).padStart(2, '0')}`;
+            document.getElementById('prevPageBtn').disabled = currentPage === 0;
+            document.getElementById('nextPageBtn').disabled = currentPage + step >= pageCount();
+            document.getElementById('viewModeBtn').textContent = step === 2 ? '双页' : '单页';
+            document.getElementById('viewModeBtn').disabled = currentTemplateKey !== 'pdf' || W < 900;
+        }
+        function savePageState() {
+            if (!wordBodies.length) return;
+            commitDamageResidue();
+            if (currentTemplateKey === 'pdf') { savePdfPageStates(); return; }
+            const marks = document.createElement('canvas');
+            marks.width = damageCanvas.width; marks.height = damageCanvas.height;
+            marks.getContext('2d').drawImage(damageCanvas, 0, 0);
+            const residue = document.createElement('canvas'); residue.width = residueCanvas.width; residue.height = residueCanvas.height;
+            if (!rewindMode) residue.getContext('2d').drawImage(residueCanvas, 0, 0);
+            const words = wordBodies.map(w => rewindMode ? { ...w, x: w.origX, y: w.origY, angle: 0, state: 'formatted', vx: 0, vy: 0 } : { ...w });
+            if (rewindMode) marks.getContext('2d').clearRect(0, 0, marks.width, marks.height);
+            pageStates.set(`${currentTemplateKey}:${currentPage}`, { words, platforms: platforms.map(p => ({ ...p })), marks, residue, rect: { ...paperRect }, forceAccepted, acceptStampScale,
+                damageIdleTime, damageFadeAccumulator, savedAt: performance.now() });
+        }
+        function restorePageState() {
+            if (currentTemplateKey === 'pdf' && !currentPdfPageData) return;
+            if (currentTemplateKey === 'pdf') { restorePdfPageStates(); return; }
+            const saved = pageStates.get(`${currentTemplateKey}:${currentPage}`);
+            if (!saved) return;
+            const sx = paperRect.w / saved.rect.w, sy = paperRect.h / saved.rect.h;
+            const px = x => paperRect.x + (x - saved.rect.x) * sx;
+            const py = y => paperRect.y + (y - saved.rect.y) * sy;
+            wordBodies = saved.words.map(w => ({ ...w, x: px(w.x), y: py(w.y), origX: px(w.origX), origY: py(w.origY),
+                w: w.w * sx, h: w.h * sy, vx: w.vx * sx, vy: w.vy * sy,
+                font: w.font.replace(/([\d.]+)px/, (_, n) => `${Number(n) * Math.min(sx, sy)}px`) }));
+            platforms = saved.platforms.map(p => ({ ...p, x: px(p.x), y: py(p.y), w: p.w * sx }));
+            damageCtx.clearRect(0, 0, paperRect.w, paperRect.h);
+            damageCtx.drawImage(saved.marks, 0, 0, paperRect.w, paperRect.h);
+            residueCtx.clearRect(0, 0, residueCanvas.width, residueCanvas.height);
+            if (saved.residue) residueCtx.drawImage(saved.residue, 0, 0, paperRect.w, paperRect.h);
+            damageIdleTime = saved.damageIdleTime;
+            damageFadeAccumulator = saved.damageFadeAccumulator;
+            // Turning away from a page must not freeze its scorch marks in time.
+            fadeDamageMarks(Math.max(0, (performance.now() - saved.savedAt) / 1000));
+            forceAccepted = saved.forceAccepted; acceptStampScale = saved.acceptStampScale;
+            
+        }
+        function clearAction() {
+            mouse.down = false; charge.active = false; charge.elapsed = 0;
+            sfx.setLoop('laser', false);
+        }
+        function clearTransientEffects() {
+            clearAction(); rewindMode = false; rewindTimer = 0;
+            bullets = []; blackHoles = []; hammerWaves = []; swordWaves = []; swordSlashes = []; particles = []; shells = []; shockwaves = [];
+            hitStopTimer = 0; screenFlash = 0;
+            screenShake = { x: 0, y: 0, vx: 0, vy: 0, intensity: 0 };
+            stickman.fireCooldown = 0; stickman.hammerCooldown = 0;
+            sfx.stopLoops();
+        }
+        function savePdfPageStates() {
+            if (!currentPdfPageData) return;
+            for (const page of currentPdfPageData.pages) {
+                const r = page.rect;
+                const words = wordBodies.filter(w => w.pageIndex === page.index).map(w => {
+                    const body = rewindMode ? { ...w, x: w.origX, y: w.origY, angle: 0, state: 'formatted', vx: 0, vy: 0 } : w;
+                    return { ...body, x: (body.x - r.x) / r.w, y: (body.y - r.y) / r.h,
+                        origX: (body.origX - r.x) / r.w, origY: (body.origY - r.y) / r.h,
+                        w: body.w / r.w, h: body.h / r.h, vx: body.vx / r.w, vy: body.vy / r.h };
+                });
+                let marks = null;
+                const residue = document.createElement('canvas'); residue.width = Math.ceil(r.w); residue.height = Math.ceil(r.h);
+                if (!rewindMode) residue.getContext('2d').drawImage(residueCanvas, r.x - paperRect.x, r.y - paperRect.y, r.w, r.h, 0, 0, residue.width, residue.height);
+                if (!rewindMode && damageIdleTime < DAMAGE_LIFETIME) {
+                    marks = document.createElement('canvas'); marks.width = Math.ceil(r.w); marks.height = Math.ceil(r.h);
+                    marks.getContext('2d').drawImage(damageCanvas, r.x - paperRect.x, r.y - paperRect.y, r.w, r.h, 0, 0, marks.width, marks.height);
+                }
+                pageStates.set(`pdf:${page.index}`, { normalized: true, words, marks, residue, damageIdleTime, damageFadeAccumulator,
+                    savedAt: performance.now(), forceAccepted, acceptStampScale });
+            }
+        }
+        function restorePdfPageStates() {
+            const now = performance.now();
+            const restored = [];
+            damageCtx.clearRect(0, 0, damageCanvas.width, damageCanvas.height);
+            residueCtx.clearRect(0, 0, residueCanvas.width, residueCanvas.height);
+            damageIdleTime = DAMAGE_LIFETIME; damageFadeAccumulator = 0;
+            let accepted = true, stampScale = 1;
+            for (const page of currentPdfPageData.pages) {
+                const saved = pageStates.get(`pdf:${page.index}`), r = page.rect;
+                if (!saved?.normalized) {
+                    restored.push(...wordBodies.filter(w => w.pageIndex === page.index)); accepted = false; continue;
+                }
+                restored.push(...saved.words.map(w => ({ ...w, x: r.x + w.x * r.w, y: r.y + w.y * r.h,
+                    origX: r.x + w.origX * r.w, origY: r.y + w.origY * r.h, w: w.w * r.w, h: w.h * r.h,
+                    vx: w.vx * r.w, vy: w.vy * r.h })));
+                const age = Math.max(0, (now - saved.savedAt) / 1000);
+                if (saved.residue) residueCtx.drawImage(saved.residue, r.x - paperRect.x, r.y - paperRect.y, r.w, r.h);
+                if (saved.marks && saved.damageIdleTime + age < DAMAGE_LIFETIME) {
+                    damageCtx.save(); damageCtx.globalAlpha = Math.exp(-.75 * (age + saved.damageFadeAccumulator));
+                    damageCtx.drawImage(saved.marks, r.x - paperRect.x, r.y - paperRect.y, r.w, r.h); damageCtx.restore();
+                    damageIdleTime = Math.min(damageIdleTime, saved.damageIdleTime + age);
+                }
+                accepted = accepted && saved.forceAccepted; stampScale = Math.min(stampScale, saved.acceptStampScale);
+            }
+            wordBodies = restored; forceAccepted = accepted; acceptStampScale = stampScale;
+        }
+        function togglePdfView() {
+            if (currentTemplateKey !== 'pdf' || W < 900) return;
+            savePageState(); clearTransientEffects();
+            pdfViewMode = pdfPageStep() === 2 ? 'single' : 'double';
+            if (pdfViewMode === 'double') currentPage = Math.floor(currentPage / 2) * 2;
+            layoutAcademicPaper(); restorePageState(); stickman.resetPosition();
+        }
+        function changePage(delta) {
+            const next = Math.clamp(currentPage + delta, 0, pageCount() - 1);
+            if (next === currentPage) return;
+            savePageState(); clearTransientEffects(); currentPage = next;
+            layoutAcademicPaper(); restorePageState(); stickman.resetPosition();
+        }
+
+        function toggleFlight() {
+            flight = !flight;
+            const button = document.getElementById('flightBtn');
+            button.setAttribute('aria-pressed', String(flight));
+            button.textContent = '飞升';
+            if (flight) {
+                stickman.vy = -280; stickman.onGround = false;
+                emitSparks(stickman.x, stickman.y - 28, 38, ['#ef4444', '#f59e0b', '#fef3c7'], 230);
+                shockwaves.push({ x: stickman.x, y: stickman.y - 26, radius: 10, maxRadius: 95, life: .5, maxLife: .5, color: '#f59e0b' });
+                sfx.playBlackHoleLaunch();
+            } else { stickman.jumpsLeft = 2; }
+        }
+
+        function drawFlightAura(ctx, player) {
+            const time = performance.now() * .004;
+            ctx.save(); ctx.translate(player.x, player.y - 27);
+            const glow = ctx.createRadialGradient(0, 0, 5, 0, 0, 68);
+            glow.addColorStop(0, '#fef3c733'); glow.addColorStop(.5, '#f59e0b44'); glow.addColorStop(1, '#ef444400');
+            ctx.fillStyle = glow; ctx.fillRect(-70, -80, 140, 160);
+            for (let i = 0; i < 9; i++) {
+                const x = (i - 4) * 6, wave = Math.sin(time * 2.5 + i * 1.7);
+                ctx.beginPath(); ctx.moveTo(x - 7, 28);
+                ctx.quadraticCurveTo(x - 20 + wave * 7, -6, x + wave * 9, -48 - (i % 3) * 9);
+                ctx.quadraticCurveTo(x + 19, -8, x + 7, 28);
+                ctx.fillStyle = i % 2 ? '#f59e0b55' : '#ef444455'; ctx.fill();
+            }
+            ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 1.3; ctx.shadowColor = '#ef4444'; ctx.shadowBlur = 12;
+            for (let i = 0; i < 3; i++) {
+                ctx.beginPath(); ctx.ellipse(0, 15, 37 + i * 6, 9 + i * 3, Math.sin(time) * .25, time + i * 2, time + i * 2 + 1.5); ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function setImportStatus(message, error = false) {
+            const el = document.getElementById('importStatus');
+            el.textContent = message; el.classList.toggle('error', error);
+        }
+        function updateDocumentStatus(message = '') {
+            document.getElementById('paperSelect').title = message;
+        }
+        function ensurePdfLibrary() {
+            if (!pdfLibraryPromise) {
+                pdfLibraryPromise = import('./vendor/pdfjs/pdf.min.mjs').then(lib => {
+                    lib.GlobalWorkerOptions.workerSrc = new URL('./vendor/pdfjs/pdf.worker.min.mjs', location.href).href;
+                    return lib;
+                }).catch(error => { pdfLibraryPromise = null; throw error; });
+            }
+            return pdfLibraryPromise;
+        }
+        function cancelPdfImport() {
+            pdfImportSequence++;
+            const task = pdfImportTask; pdfImportTask = null;
+            if (task) task.destroy().catch(() => {});
+            pdfPasswordCallback = null;
+            document.getElementById('pdfPasswordArea').className = 'hidden';
+            document.getElementById('pdfPasswordInput').value = '';
+            document.getElementById('pdfFileInput').disabled = false;
+            document.getElementById('applyCustomBtn').disabled = false;
+        }
+        async function renderPdfSource(doc, index, lib) {
+            const page = await doc.getPage(index + 1);
+            const unit = page.getViewport({ scale: 1 });
+            // Stable canonical raster dimensions keep saved crop coordinates valid on resize.
+            const scale = Math.min(3000 / Math.max(unit.width, unit.height), Math.sqrt(8e6 / (unit.width * unit.height)));
+            const viewport = page.getViewport({ scale });
+            const source = document.createElement('canvas');
+            source.width = Math.ceil(viewport.width); source.height = Math.ceil(viewport.height);
+            const renderContext = source.getContext('2d', { willReadFrequently: true });
+            const [content] = await Promise.all([
+                page.getTextContent(),
+                page.render({ canvasContext: renderContext, viewport, background: '#ffffff' }).promise
+            ]);
+            const bodies = [];
+            for (const item of content.items) {
+                if (!item.str?.trim()) continue;
+                const tx = lib.Util.transform(viewport.transform, item.transform);
+                const fontHeight = Math.hypot(tx[2], tx[3]);
+                if (fontHeight < .5 || item.width <= 0) continue;
+                const style = content.styles[item.fontName] || {};
+                const ascent = style.ascent ?? .8, descent = Math.max(.15, -(style.descent ?? -.2));
+                const angle = Math.atan2(tx[1], tx[0]);
+                const width = item.width * scale;
+                const height = fontHeight * (ascent + descent);
+                const top = tx[5] - fontHeight * ascent;
+                const isHorizontal = Math.abs(angle) < .02 && !style.vertical;
+                const tokens = isHorizontal ? (item.str.match(/[\u3400-\u9fff]|\s+|[^\s\u3400-\u9fff]+/gu) || []) : [item.str];
+                renderContext.font = `${fontHeight}px ${style.fontFamily || 'serif'}`;
+                const totalWidth = tokens.reduce((sum, token) => sum + renderContext.measureText(token).width, 0) || 1;
+                let offset = 0;
+                for (const token of tokens) {
+                    const tokenWidth = width * renderContext.measureText(token).width / totalWidth;
+                    if (token.trim()) {
+                        let left = tx[4] + offset, y = top, w = tokenWidth, h = height;
+                        if (!isHorizontal) {
+                            const ux = Math.cos(angle), uy = Math.sin(angle);
+                            const corners = [[0, -fontHeight * ascent], [width, -fontHeight * ascent], [0, fontHeight * descent], [width, fontHeight * descent]]
+                                .map(([cx, cy]) => [tx[4] + cx * ux - cy * uy, tx[5] + cx * uy + cy * ux]);
+                            left = Math.min(...corners.map(p => p[0])); y = Math.min(...corners.map(p => p[1]));
+                            w = Math.max(...corners.map(p => p[0])) - left; h = Math.max(...corners.map(p => p[1])) - y;
+                        }
+                        const sx = Math.max(0, Math.floor(left)), sy = Math.max(0, Math.floor(y - 1));
+                        const sw = Math.min(source.width - sx, Math.ceil(w + left - sx));
+                        const sh = Math.min(source.height - sy, Math.ceil(h + y - sy + 1));
+                        if (sw > 0 && sh > 0) {
+                            const sample = renderContext.getImageData(Math.min(source.width - 1, sx), Math.max(0, sy - 2), 1, 1).data;
+                            bodies.push({ text: token, sx, sy, sw, sh, background: `rgb(${sample[0]},${sample[1]},${sample[2]})` });
+                        }
+                    }
+                    offset += tokenWidth;
+                }
+            }
+            // Erase text in a separate raster so figure fragments never duplicate text.
+            const graphics = document.createElement('canvas'); graphics.width = source.width; graphics.height = source.height;
+            const graphicContext = graphics.getContext('2d', { willReadFrequently: true }); graphicContext.drawImage(source, 0, 0);
+            for (const body of bodies) {
+                graphicContext.fillStyle = body.background;
+                graphicContext.fillRect(body.sx, body.sy, body.sw, body.sh);
+            }
+            // Scans expose the entire sheet; text PDFs also expose non-text image/plot regions.
+            const scanned = bodies.length === 0;
+            if (scanned) {
+                const columns = 16, rows = Math.max(1, Math.round(16 * source.height / source.width));
+                for (let row = 0; row < rows; row++) for (let col = 0; col < columns; col++) {
+                    const sx = Math.floor(col * source.width / columns), sy = Math.floor(row * source.height / rows);
+                    bodies.push({ kind: 'graphic', text: '', sx, sy, sw: Math.min(source.width - sx, Math.ceil(source.width / columns)), sh: Math.min(source.height - sy, Math.ceil(source.height / rows)), background: '#fff' });
+                }
+            } else {
+                const pixels = graphicContext.getImageData(0, 0, source.width, source.height).data;
+                const cell = Math.max(40, Math.round(Math.max(source.width, source.height) / 35));
+                for (let sy = 0; sy < source.height; sy += cell) for (let sx = 0; sx < source.width; sx += cell) {
+                    const sw = Math.min(cell, source.width - sx), sh = Math.min(cell, source.height - sy);
+                    let ink = 0, samples = 0;
+                    for (let y = sy + 2; y < sy + sh; y += 5) for (let x = sx + 2; x < sx + sw; x += 5) {
+                        const i = (y * source.width + x) * 4;
+                        samples++; if (Math.min(pixels[i], pixels[i + 1], pixels[i + 2]) < 225) ink++;
+                    }
+                    if (samples && ink / samples > .055) bodies.push({ kind: 'graphic', text: '', sx, sy, sw, sh, background: '#fff' });
+                }
+            }
+            page.cleanup();
+            return { source, graphics, bodies, scanned, width: source.width, height: source.height };
+        }
+        async function importPdfFile(file) {
+            if (!file) return;
+            cancelPdfImport();
+            const sequence = pdfImportSequence;
+            document.getElementById('pdfFileInput').disabled = true;
+            document.getElementById('applyCustomBtn').disabled = true;
+            setImportStatus('正在读取 PDF…');
+            let loadingTask = null;
+            try {
+                const data = new Uint8Array(await file.arrayBuffer());
+                if (!new TextDecoder('latin1').decode(data.subarray(0, 1024)).includes('%PDF-')) throw new Error('不是有效的 PDF 文件，请重新选择。');
+                if (location.protocol === 'file:') throw new Error('请使用项目中的“启动游戏.cmd”打开本地网页，再导入 PDF。');
+                const lib = await ensurePdfLibrary();
+                if (sequence !== pdfImportSequence) return;
+                loadingTask = lib.getDocument({ data, isEvalSupported: false,
+                    cMapUrl: new URL('./vendor/pdfjs/cmaps/', location.href).href, cMapPacked: true,
+                    standardFontDataUrl: new URL('./vendor/pdfjs/standard_fonts/', location.href).href,
+                    wasmUrl: new URL('./vendor/pdfjs/wasm/', location.href).href });
+                pdfImportTask = loadingTask;
+                loadingTask.onPassword = (callback, reason) => {
+                    if (sequence !== pdfImportSequence) return;
+                    pdfPasswordCallback = callback;
+                    document.getElementById('pdfPasswordArea').className = 'flex';
+                    setImportStatus(reason === lib.PasswordResponses.INCORRECT_PASSWORD ? '密码不正确，请重试。' : '此 PDF 已加密，请输入打开密码。');
+                    document.getElementById('pdfPasswordInput').focus();
+                };
+                const doc = await loadingTask.promise;
+                if (sequence !== pdfImportSequence) { await doc.destroy(); return; }
+                setImportStatus(`已读取 ${doc.numPages} 页，正在准备第一页…`);
+                const first = await renderPdfSource(doc, 0, lib);
+                if (sequence !== pdfImportSequence) { await doc.destroy(); return; }
+                savePageState(); clearTransientEffects();
+                const oldPdf = importedPdf;
+                importedPdf = { doc, lib, name: file.name, pages: new Map([[0, first]]), pending: new Map() };
+                pdfImportTask = null;
+                if (oldPdf) oldPdf.doc.destroy().catch(() => {});
+                for (const key of pageStates.keys()) if (key.startsWith('pdf:')) pageStates.delete(key);
+                currentPage = 0; currentTemplateKey = 'pdf';
+                let option = document.querySelector('#paperSelect option[value="pdf"]');
+                if (!option) { option = document.createElement('option'); option.value = 'pdf'; document.getElementById('paperSelect').appendChild(option); }
+                option.textContent = file.name;
+                document.getElementById('paperSelect').value = 'pdf';
+                updateDocumentStatus(`${file.name} · ${doc.numPages} 页 · 本地 PDF`);
+                closeCustomModal(); layoutAcademicPaper(); stickman.resetPosition();
+            } catch (error) {
+                if (sequence !== pdfImportSequence) return;
+                if (loadingTask) loadingTask.destroy().catch(() => {});
+                pdfImportTask = null;
+                setImportStatus(error.name === 'InvalidPDFException' ? 'PDF 已损坏或无法解析，请尝试重新导出后导入。' : `导入失败：${error.message || '无法读取文件'}`, true);
+            } finally {
+                if (sequence === pdfImportSequence) {
+                    document.getElementById('pdfFileInput').disabled = false;
+                    document.getElementById('applyCustomBtn').disabled = false;
+                }
+            }
+        }
+        function layoutPdfPages(entries) {
+            const maxW = paperRect.w, maxH = paperRect.h;
+            const gap = entries.length > 1 ? 26 : 0;
+            const width = entries.reduce((sum, p) => sum + p.data.width, 0) + gap;
+            const height = Math.max(...entries.map(p => p.data.height));
+            const ratio = Math.min(maxW / width, maxH / height);
+            paperRect.x += (maxW - width * ratio) / 2;
+            paperRect.y += (maxH - height * ratio) / 2;
+            paperRect.w = width * ratio; paperRect.h = height * ratio;
+            damageCanvas.width = Math.ceil(paperRect.w); damageCanvas.height = Math.ceil(paperRect.h);
+            residueCanvas.width = damageCanvas.width; residueCanvas.height = damageCanvas.height;
+            let offset = 0; wordBodies = []; platforms = [];
+            const pages = entries.map(({ index, data }) => {
+                const rect = { x: paperRect.x + offset * ratio, y: paperRect.y + (height - data.height) * ratio / 2, w: data.width * ratio, h: data.height * ratio };
+                offset += data.width + gap;
+                wordBodies.push(...data.bodies.map(b => ({ ...b, type: b.kind === 'graphic' ? 'pdfGraphic' : 'pdfText', pageIndex: index,
+                    x: rect.x + (b.sx + b.sw / 2) * ratio, y: rect.y + (b.sy + b.sh / 2) * ratio,
+                    origX: rect.x + (b.sx + b.sw / 2) * ratio, origY: rect.y + (b.sy + b.sh / 2) * ratio,
+                    w: b.sw * ratio, h: b.sh * ratio, vx: 0, vy: 0, angle: 0, vAngle: 0, state: 'formatted', font: '12px serif', color: '#0f172a', hp: 1 })));
+                for (const level of [.4, .7]) platforms.push({ x: rect.x + 8, y: rect.y + rect.h * level, w: Math.max(1, rect.w - 16) });
+                return { index, data, rect };
+            });
+            currentPdfPageData = { pages, source: entries[0].data.source, scanned: entries.every(p => p.data.scanned), width, height };
+            updateDocumentStatus(importedPdf.name);
+            updatePageControls(); 
+        }
+        async function loadPdfPage(index, sequence) {
+            const session = importedPdf;
+            try {
+                const indices = Array.from({ length: Math.min(pdfPageStep(), session.doc.numPages - index) }, (_, i) => index + i);
+                const entries = await Promise.all(indices.map(async pageIndex => {
+                    if (!session.pages.has(pageIndex)) {
+                        if (!session.pending.has(pageIndex)) session.pending.set(pageIndex, renderPdfSource(session.doc, pageIndex, session.lib));
+                        try { session.pages.set(pageIndex, await session.pending.get(pageIndex)); }
+                        finally { session.pending.delete(pageIndex); }
+                    }
+                    return { index: pageIndex, data: session.pages.get(pageIndex) };
+                }));
+                // Bound page bitmaps; physical page state only stores coordinates and crop regions.
+                while (session.pages.size > 3) session.pages.delete(session.pages.keys().next().value);
+                if (sequence !== pdfPageSequence || importedPdf !== session || currentTemplateKey !== 'pdf' || currentPage !== index) return;
+                layoutPdfPages(entries); restorePageState(); stickman.resetPosition();
+            } catch (error) {
+                if (sequence !== pdfPageSequence || importedPdf !== session || currentTemplateKey !== 'pdf') return;
+                pdfPageError = '本页加载失败，请切换页面后重试。';
+                updateDocumentStatus(`${pdfPageError} ${error.message || ''}`);
+            }
+        }
+
+        function layoutAcademicPaper() {
+            const sequence = ++pdfPageSequence;
+            currentPdfPageData = null; pdfPageError = '';
+            wordBodies = [];
+            platforms = [];
+            forceAccepted = false;
+            acceptStampScale = 0;
+
+            // Responsive paper centering
+            Object.assign(paperRect, getStageRect());
+            if (currentTemplateKey !== 'pdf') {
+                const width = Math.min(1000, paperRect.w);
+                paperRect.x += (paperRect.w - width) / 2; paperRect.w = width;
+            }
+
+            // Reset offscreen damage canvas
+            damageCanvas.width = paperRect.w;
+            damageCanvas.height = paperRect.h;
+            residueCanvas.width = damageCanvas.width; residueCanvas.height = damageCanvas.height;
+            damageCtx.clearRect(0, 0, paperRect.w, paperRect.h);
+            damageIdleTime = DAMAGE_LIFETIME;
+            damageFadeAccumulator = 0;
+
+            if (currentTemplateKey === 'pdf' && importedPdf) {
+                const indices = Array.from({ length: Math.min(pdfPageStep(), pageCount() - currentPage) }, (_, i) => currentPage + i);
+                if (indices.every(index => importedPdf.pages.has(index))) layoutPdfPages(indices.map(index => ({ index, data: importedPdf.pages.get(index) })));
+                else {
+                    updatePageControls(); 
+                    updateDocumentStatus(`${importedPdf.name} · 正在加载第 ${currentPage + 1} 页…`);
+                    loadPdfPage(currentPage, sequence);
+                }
+                return;
+            }
+            updateDocumentStatus();
+
+            const tpl = getPageTemplate();
+            const marginX = paperRect.w * 0.065;
+            const contentW = paperRect.w - marginX * 2;
+            const colGap = paperRect.w * 0.04;
+            const colW = (contentW - colGap) * 0.5;
+
+            let curY = paperRect.y + 34;
+
+            // Helper to tokenize & push words along a wrapped block
+            function addTextBlock(text, startX, startY, maxWidth, font, color, isMath = false, isHeader = false) {
+                ctx.font = font;
+                const tokens = text.match(/[\u3400-\u9fff]|[^\s\u3400-\u9fff]+/gu) || [];
+                let lineX = startX;
+                let lineY = startY;
+                const fontSizeMatch = font.match(/(\d+(?:\.\d+)?)px/);
+                const fontSize = fontSizeMatch ? parseFloat(fontSizeMatch[1]) : 13;
+                const lineHeight = fontSize * 1.38;
+                const spaceW = ctx.measureText(' ').width * 0.95;
+
+                tokens.forEach(token => {
+                    const metrics = ctx.measureText(token);
+                    const w = Math.max(metrics.width, 8);
+                    if (lineX + w > startX + maxWidth && lineX > startX) {
+                        lineX = startX;
+                        lineY += lineHeight;
+                    }
+                    wordBodies.push({
+                        text: token,
+                        origX: lineX + w * 0.5,
+                        origY: lineY,
+                        x: lineX + w * 0.5,
+                        y: lineY,
+                        vx: 0,
+                        vy: 0,
+                        angle: 0,
+                        vAngle: 0,
+                        w: w,
+                        h: fontSize,
+                        font: font,
+                        color: color,
+                        isMath: isMath,
+                        isHeader: isHeader,
+                        state: 'formatted', // 'formatted' | 'detached' | 'obliterated'
+                        hp: isHeader ? 2 : 1,
+                        type: 'word'
+                    });
+                    lineX += w + spaceW;
+                });
+
+                return lineY + lineHeight;
+            }
+
+            // Helper for centered single or wrapped lines (Title / Authors)
+            function addCenteredBlock(text, startY, maxWidth, font, color, isHeader = false) {
+                ctx.font = font;
+                const tokens = text.split(/\s+/).filter(Boolean);
+                const fontSizeMatch = font.match(/(\d+(?:\.\d+)?)px/);
+                const fontSize = fontSizeMatch ? parseFloat(fontSizeMatch[1]) : 16;
+                const lineHeight = fontSize * 1.3;
+                const spaceW = ctx.measureText(' ').width;
+
+                let lines = [];
+                let currentLine = [];
+                let currentW = 0;
+
+                tokens.forEach(t => {
+                    const tw = ctx.measureText(t).width;
+                    if (currentW + tw > maxWidth && currentLine.length > 0) {
+                        lines.push({ words: currentLine, totalW: currentW - spaceW });
+                        currentLine = [{ text: t, w: tw }];
+                        currentW = tw + spaceW;
+                    } else {
+                        currentLine.push({ text: t, w: tw });
+                        currentW += tw + spaceW;
+                    }
+                });
+                if (currentLine.length > 0) {
+                    lines.push({ words: currentLine, totalW: currentW - spaceW });
+                }
+
+                let y = startY;
+                lines.forEach(line => {
+                    let x = paperRect.x + (paperRect.w - line.totalW) * 0.5;
+                    line.words.forEach(item => {
+                        wordBodies.push({
+                            text: item.text,
+                            origX: x + item.w * 0.5,
+                            origY: y,
+                            x: x + item.w * 0.5,
+                            y: y,
+                            vx: 0,
+                            vy: 0,
+                            angle: 0,
+                            vAngle: 0,
+                            w: item.w,
+                            h: fontSize,
+                            font: font,
+                            color: color,
+                            isMath: false,
+                            isHeader: isHeader,
+                            state: 'formatted',
+                            hp: 2,
+                            type: 'word'
+                        });
+                        x += item.w + spaceW;
+                    });
+                    y += lineHeight;
+                });
+                return y;
+            }
+
+            const scale = Math.clamp(paperRect.w / 840, 0.72, 1.05);
+
+            // 1. Top Venue Header + Red "MAJOR REVISION" Stamp
+            addTextBlock(tpl.venue, paperRect.x + marginX, curY, contentW * 0.7, `italic ${Math.round(11 * scale)}px "Crimson Pro", Georgia, serif`, '#475569');
+            // Red Reviewer #2 Stamp tokens in top-right
+            addTextBlock("[STATUS: MAJOR REVISION - REVIEWER #2]", paperRect.x + paperRect.w - marginX - 240 * scale, curY, 250 * scale, `700 ${Math.round(11 * scale)}px "JetBrains Mono", monospace`, '#e11d48', false, true);
+            curY += 24 * scale;
+
+            // 2. Paper Title (Bold Classical Serif)
+            curY = addCenteredBlock(tpl.title, curY, contentW * 0.94, `700 ${Math.round(21 * scale)}px "Crimson Pro", Georgia, serif`, '#0f172a', true);
+            curY += 6 * scale;
+
+            // Title Horizontal Rule Platform
+            platforms.push({ x: paperRect.x + marginX, y: curY, w: contentW, label: 'title-rule' });
+            curY += 14 * scale;
+
+            // 3. Authors & Affiliations
+            curY = addCenteredBlock(tpl.authors, curY, contentW * 0.9, `600 ${Math.round(12.5 * scale)}px "Crimson Pro", Georgia, serif`, '#1e293b');
+            curY = addCenteredBlock(tpl.affil, curY, contentW * 0.9, `italic ${Math.round(11 * scale)}px "Crimson Pro", Georgia, serif`, '#475569');
+            curY += 14 * scale;
+
+            // 4. Double-Column Body Start
+            const col1X = paperRect.x + marginX;
+            const col2X = paperRect.x + marginX + colW + colGap;
+            let col1Y = curY;
+            let col2Y = curY;
+
+            if (currentTemplateKey === 'custom') {
+                const font = `${Math.round(12 * scale)}px "Crimson Pro", Georgia, serif`;
+                const lineH = Math.round(12 * scale) * 1.38;
+                if (!customPages.length) {
+                    ctx.font = font;
+                    const tokens = (tpl.abstract || '').match(/[\u3400-\u9fff]|[^\s\u3400-\u9fff]+/gu) || [];
+                    const maxLines = Math.max(1, Math.floor((paperRect.y + paperRect.h - 28 - curY) / lineH));
+                    let chunk = [], line = 0, usedWidth = 0;
+                    for (const token of tokens) {
+                        const tw = ctx.measureText(token).width + ctx.measureText(' ').width * .95;
+                        if (usedWidth && usedWidth + tw > colW) { line++; usedWidth = 0; }
+                        if (line >= maxLines * 2) { customPages.push(chunk.join(' ')); chunk = []; line = 0; usedWidth = 0; }
+                        chunk.push(token); usedWidth += tw;
+                    }
+                    if (chunk.length) customPages.push(chunk.join(' '));
+                    if (!customPages.length) customPages.push('No manuscript text supplied.');
+                }
+                // Flow the full imported text across both columns without repeating it.
+                const tokens = customPages[currentPage].match(/[\u3400-\u9fff]|[^\s\u3400-\u9fff]+/gu) || [];
+                let x = col1X, y = curY, column = 0;
+                ctx.font = font;
+                for (const token of tokens) {
+                    const tw = ctx.measureText(token).width, space = ctx.measureText(' ').width * .95;
+                    const start = column === 0 ? col1X : col2X;
+                    if (x > start && x + tw > start + colW) { x = start; y += lineH; }
+                    if (column === 0 && y + lineH > paperRect.y + paperRect.h - 28) { column = 1; x = col2X; y = curY; }
+                    addTextBlock(token, x, y, Math.max(tw, colW), font, '#1e293b');
+                    x += tw + space;
+                }
+                fitPaperContent(); updatePageControls();  return;
+            }
+
+            // --- LEFT COLUMN: Abstract + Section 1 + Section 2 Equations ---
+            col1Y = addTextBlock("Abstract", col1X, col1Y, colW, `700 ${Math.round(14 * scale)}px "Crimson Pro", Georgia, serif`, '#0f172a', false, true);
+            col1Y = addTextBlock(tpl.abstract, col1X, col1Y + 2, colW, `${Math.round(12 * scale)}px "Crimson Pro", Georgia, serif`, '#1e293b');
+            col1Y += 12 * scale;
+
+            // Section 1 Platform + Text
+            platforms.push({ x: col1X, y: col1Y - 8, w: colW, label: 'sec1' });
+            col1Y = addTextBlock(tpl.sec1Title, col1X, col1Y, colW, `700 ${Math.round(14 * scale)}px "Crimson Pro", Georgia, serif`, '#0f172a', false, true);
+            col1Y = addTextBlock(tpl.sec1Body, col1X, col1Y + 2, colW, `${Math.round(12 * scale)}px "Crimson Pro", Georgia, serif`, '#1e293b');
+            col1Y += 12 * scale;
+
+            // Section 2 Platform + Dense Math Equations
+            platforms.push({ x: col1X, y: col1Y - 8, w: colW, label: 'sec2' });
+            col1Y = addTextBlock(tpl.sec2Title, col1X, col1Y, colW, `700 ${Math.round(14 * scale)}px "Crimson Pro", Georgia, serif`, '#0f172a', false, true);
+            col1Y = addTextBlock(tpl.sec2Pre, col1X, col1Y + 2, colW, `${Math.round(12 * scale)}px "Crimson Pro", Georgia, serif`, '#1e293b');
+            col1Y += 6 * scale;
+
+            // Highlighted Math Equation Box 1 & 2
+            col1Y = addTextBlock(tpl.equation1 + "   (1)", col1X + 8, col1Y, colW - 16, `italic 600 ${Math.round(12.5 * scale)}px "Crimson Pro", Georgia, serif`, '#0f172a', true);
+            col1Y += 4 * scale;
+            col1Y = addTextBlock(tpl.equation2 + "   (2)", col1X + 8, col1Y, colW - 16, `italic 600 ${Math.round(12.5 * scale)}px "Crimson Pro", Georgia, serif`, '#0f172a', true);
+            col1Y += 4 * scale;
+            col1Y = addTextBlock(tpl.sec2Post, col1X, col1Y, colW, `${Math.round(12 * scale)}px "Crimson Pro", Georgia, serif`, '#1e293b');
+
+            // --- RIGHT COLUMN: Figure 1 Chart (Destructible Bars) + Table 1 + Section 3 ---
+            platforms.push({ x: col2X, y: col2Y - 6, w: colW, label: 'fig1-top' });
+
+            // Create interactive destructible Chart Bars for Figure 1
+            const chartH = 125 * scale;
+            const chartBottom = col2Y + chartH;
+            const barData = [
+                { label: "Baseline", val: 0.45, color: "#64748b" },
+                { label: "PriorArt", val: 0.62, color: "#475569" },
+                { label: "Ablation", val: 0.52, color: "#94a3b8" },
+                { label: "Ours(SOTA)", val: 0.94, color: "#2563eb" },
+                { label: "Rev#2Ask", val: 1.00, color: "#e11d48" }
+            ];
+            const barSpacing = colW / (barData.length + 1);
+            barData.forEach((b, idx) => {
+                const bw = Math.min(28 * scale, barSpacing * 0.65);
+                const bh = b.val * (chartH - 32 * scale);
+                const bx = col2X + barSpacing * (idx + 0.85);
+                const by = chartBottom - 16 * scale - bh * 0.5;
+
+                wordBodies.push({
+                    text: b.label,
+                    origX: bx,
+                    origY: by,
+                    x: bx,
+                    y: by,
+                    vx: 0,
+                    vy: 0,
+                    angle: 0,
+                    vAngle: 0,
+                    w: bw,
+                    h: bh,
+                    font: `600 ${Math.round(10 * scale)}px "JetBrains Mono", monospace`,
+                    color: b.color,
+                    isMath: false,
+                    isHeader: true,
+                    state: 'formatted',
+                    hp: 2,
+                    type: 'bar'
+                });
+            });
+
+            col2Y = chartBottom + 8 * scale;
+            col2Y = addTextBlock(tpl.figTitle, col2X, col2Y, colW, `italic 600 ${Math.round(11.5 * scale)}px "Crimson Pro", Georgia, serif`, '#334155');
+            col2Y += 14 * scale;
+
+            // Table 1: Destructible Ablation Study Cells
+            platforms.push({ x: col2X, y: col2Y - 6, w: colW, label: 'table1' });
+            col2Y = addTextBlock(tpl.tableTitle, col2X, col2Y, colW, `700 ${Math.round(12 * scale)}px "Crimson Pro", Georgia, serif`, '#0f172a', false, true);
+            col2Y += 4 * scale;
+
+            const tableRows = [
+                "Method          Acc(%)   Loss    GPU-Hrs",
+                "w/o Coffee       41.2    NaN      999h",
+                "w/ Seed=42       78.4    0.82     120h",
+                "Ours (Full)      99.9    0.00     0.5h"
+            ];
+            tableRows.forEach((rowStr, rIdx) => {
+                col2Y = addTextBlock(
+                    rowStr,
+                    col2X + 6,
+                    col2Y,
+                    colW - 12,
+                    `${rIdx === 0 || rIdx === 3 ? '700' : '400'} ${Math.round(11 * scale)}px "JetBrains Mono", monospace`,
+                    rIdx === 3 ? '#0f172a' : '#334155',
+                    true
+                );
+            });
+            col2Y += 14 * scale;
+
+            // Section 3 Platform + Conclusion
+            platforms.push({ x: col2X, y: col2Y - 6, w: colW, label: 'sec3' });
+            col2Y = addTextBlock(tpl.sec3Title, col2X, col2Y, colW, `700 ${Math.round(14 * scale)}px "Crimson Pro", Georgia, serif`, '#0f172a', false, true);
+            col2Y = addTextBlock(tpl.sec3Body, col2X, col2Y + 2, colW, `${Math.round(12 * scale)}px "Crimson Pro", Georgia, serif`, '#1e293b');
+
+            fitPaperContent();
+            updatePageControls();
+            
+        }
+
+        function fitPaperContent() {
+            const bottom = Math.max(...wordBodies.map(w => w.origY + w.h), paperRect.y + 1);
+            const ratio = Math.min(1, (paperRect.h - 32) / (bottom - paperRect.y));
+            if (ratio < 1) {
+                for (const w of wordBodies) {
+                    w.y = w.origY = paperRect.y + (w.origY - paperRect.y) * ratio;
+                    w.h *= ratio;
+                    w.font = w.font.replace(/([\d.]+)px/, (_, n) => `${Number(n) * ratio}px`);
+                }
+                for (const p of platforms) p.y = paperRect.y + (p.y - paperRect.y) * ratio;
+            }
+        }
+
+        function fadeDamageMarks(dt) {
+            commitDamageResidue();
+            damageIdleTime += dt;
+            if (damageIdleTime >= DAMAGE_LIFETIME) {
+                damageCtx.clearRect(0, 0, damageCanvas.width, damageCanvas.height);
+                damageFadeAccumulator = 0;
+                return;
+            }
+            // Larger, infrequent opacity steps avoid visible 8-bit alpha rounding residue.
+            damageFadeAccumulator += dt;
+            if (damageFadeAccumulator < .1) return;
+            damageCtx.save();
+            damageCtx.globalCompositeOperation = 'destination-out';
+            damageCtx.fillStyle = `rgba(0,0,0,${1 - Math.exp(-.75 * damageFadeAccumulator)})`;
+            damageCtx.fillRect(0, 0, damageCanvas.width, damageCanvas.height);
+            damageCtx.restore();
+            damageFadeAccumulator = 0;
+        }
+
+        function commitDamageResidue() {
+            if (damageIdleTime < DAMAGE_LIFETIME && !rewindMode) residueCtx.drawImage(damageCanvas, 0, 0);
+        }
+
+        function configureCanvas() {
+            pixelRatio = Math.min(window.devicePixelRatio || 1, 2, Math.sqrt(16e6 / (W * H)));
+            canvas.width = Math.round(W * pixelRatio); canvas.height = Math.round(H * pixelRatio);
+            ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+            ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+        }
+
+        function scorchLaserLine(x1, y1, x2, y2) {
+            // One continuous, canvas-clipped incision; never a chain of radial stamps.
+            damageIdleTime = 0;
+            damageCtx.save(); damageCtx.lineCap = 'butt';
+            const layers = [[8, 'rgba(71,30,24,.15)'], [4, 'rgba(38,20,24,.5)'], [1.8, '#1b1110'], [.6, '#b86d37']];
+            for (const [width, color] of layers) {
+                damageCtx.strokeStyle = color; damageCtx.lineWidth = width;
+                damageCtx.beginPath(); damageCtx.moveTo(x1 - paperRect.x, y1 - paperRect.y);
+                damageCtx.lineTo(x2 - paperRect.x, y2 - paperRect.y); damageCtx.stroke();
+            }
+            damageCtx.restore();
+        }
+
+        function scorchPaperAt(worldX, worldY, radius, isLaser = false) {
+            const lx = worldX - paperRect.x;
+            const ly = worldY - paperRect.y;
+            if (lx < -radius || lx > paperRect.w + radius || ly < -radius || ly > paperRect.h + radius) return;
+            damageIdleTime = 0;
+
+            damageCtx.save();
+            const grad = damageCtx.createRadialGradient(lx, ly, radius * 0.1, lx, ly, radius);
+            if (isLaser) {
+                grad.addColorStop(0, 'rgba(11, 13, 18, 0.95)');
+                grad.addColorStop(0.55, 'rgba(30, 15, 35, 0.75)');
+                grad.addColorStop(0.85, 'rgba(236, 72, 153, 0.25)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            } else {
+                grad.addColorStop(0, 'rgba(11, 13, 18, 0.92)');
+                grad.addColorStop(0.5, 'rgba(24, 24, 32, 0.55)');
+                grad.addColorStop(1, 'rgba(15, 23, 42, 0)');
+            }
+            damageCtx.fillStyle = grad;
+            damageCtx.beginPath();
+            damageCtx.arc(lx, ly, radius, 0, Math.PI * 2);
+            damageCtx.fill();
+            damageCtx.restore();
+        }
+
+        function damageWordBody(wb, impulseX, impulseY, obliterateImmediate = false) {
+            if (wb.state === 'obliterated') return;
+            if (flight) { impulseX *= 1.05; impulseY *= 1.05; }
+            if (flight && wb.state === 'formatted' && Math.random() < .03) obliterateImmediate = true;
+
+            if (wb.state === 'formatted' && !obliterateImmediate) {
+                wb.state = 'detached';
+                wb.vx = impulseX + (Math.random() - 0.5) * 160;
+                wb.vy = impulseY - Math.random() * 180;
+                wb.vAngle = (Math.random() - 0.5) * 14;
+                sfx.playWordDetach();
+
+                // Highlighter spark burst on detachment
+                const col = HIGHLIGHTER_COLORS[Math.floor(Math.random() * HIGHLIGHTER_COLORS.length)];
+                for (let i = 0; i < 3; i++) {
+                    particles.push({
+                        x: wb.x,
+                        y: wb.y,
+                        vx: (Math.random() - 0.5) * 240 + impulseX * 0.3,
+                        vy: (Math.random() - 0.5) * 240 + impulseY * 0.3,
+                        size: 2 + Math.random() * 2.5,
+                        color: col,
+                        life: 0.35 + Math.random() * 0.2,
+                        maxLife: 0.55,
+                        glow: true
+                    });
+                }
+            } else {
+                // Second impact or heavy laser/supernova -> shatter into neon highlighter fragments!
+                wb.state = 'obliterated';
+                const col = HIGHLIGHTER_COLORS[Math.floor(Math.random() * HIGHLIGHTER_COLORS.length)];
+                const count = wb.type === 'bar' ? 14 : 6;
+                for (let i = 0; i < count; i++) {
+                    particles.push({
+                        x: wb.x + (Math.random() - 0.5) * wb.w * 0.5,
+                        y: wb.y + (Math.random() - 0.5) * wb.h * 0.5,
+                        vx: (Math.random() - 0.5) * 420 + impulseX * 0.5,
+                        vy: (Math.random() - 0.5) * 420 + impulseY * 0.5,
+                        size: 2.5 + Math.random() * 3.5,
+                        color: col,
+                        life: 0.45 + Math.random() * 0.35,
+                        maxLife: 0.8,
+                        glow: true
+                    });
+                }
+            }
+        }
+
+        function addScreenShake(dirX, dirY, amount) {
+            screenShake.vx = Math.clamp(screenShake.vx + dirX * amount * SCREEN_SHAKE_SCALE, -120, 120);
+            screenShake.vy = Math.clamp(screenShake.vy + dirY * amount * SCREEN_SHAKE_SCALE, -120, 120);
+            screenShake.intensity = Math.min(screenShake.intensity + amount * 0.25, 28);
+        }
+
+        function chargedShakeAmount(power, lightAmount, fullAmount) {
+            // Reserve the larger impact for the final tenth of the charge / range.
+            const boost = Math.clamp((power - .9) / .1, 0, 1);
+            return lightAmount + (fullAmount - lightAmount) * boost * boost;
+        }
+
+        function updateScreenShake(dt) {
+            // Exact critically damped spring: stable at low FPS, without oscillation.
+            const damping = 24, decay = Math.exp(-damping * dt);
+            for (const [position, velocity] of [['x', 'vx'], ['y', 'vy']]) {
+                const coupling = screenShake[velocity] + damping * screenShake[position];
+                const next = (screenShake[position] + coupling * dt) * decay;
+                screenShake[velocity] = (screenShake[velocity] - damping * coupling * dt) * decay;
+                screenShake[position] = Math.clamp(next, -MAX_SCREEN_SHAKE, MAX_SCREEN_SHAKE);
+                if (Math.abs(next) > MAX_SCREEN_SHAKE && next * screenShake[velocity] > 0) screenShake[velocity] = 0;
+            }
+            screenShake.intensity *= Math.pow(0.01, dt);
+        }
+
+        function beginAttack() {
+            if (rewindMode || customModal.classList.contains('flex')) return;
+            sfx.init();
+            mouse.down = true;
+            if (currentWeapon === 1 || currentWeapon === 3 || currentWeapon === 4) {
+                if (stickman.fireCooldown > 0 || stickman.hammerCooldown > 0) return;
+                charge.active = true; charge.elapsed = 0; charge.weapon = currentWeapon; charge.pulse = 0;
+            } else fireWeapon(.016);
+        }
+        function releaseAttack() {
+            if (charge.active && charge.weapon === currentWeapon && !rewindMode) {
+                // A quick click between frames still launches with minimum charge.
+                const power = Math.clamp(charge.elapsed / charge.max, 0, 1);
+                fireWeapon(.016, currentWeapon === 4 && charge.elapsed < .4 ? 0 : power);
+            }
+            clearAction();
+        }
+        function fireWeapon(dt, power = null) {
+            if (rewindMode) return;
+            if ((currentWeapon === 1 || currentWeapon === 3 || currentWeapon === 4) && power === null) return;
+            const { shoulderX, shoulderY, angle, dirX, dirY, muzzleX, muzzleY } = weaponPose();
+
+            if (currentWeapon === 0) {
+                // [1] Reviewer #2 Gatling Gun
+                if (stickman.fireCooldown > 0) return;
+                stickman.fireCooldown = 0.055; // ~18 rounds/sec
+                stickman.recoilOffset = 9 * RECOIL_SCALE;
+
+                // Push stickman back slightly from heavy fire
+                stickman.vx -= dirX * 48 * RECOIL_SCALE;
+                if (!stickman.onGround) stickman.vy -= dirY * 32 * RECOIL_SCALE;
+
+                const spread = (Math.random() - 0.5) * 0.14;
+                const bAngle = angle + spread;
+                const speed = 1150;
+                const label = Math.random() < 0.6 ? GATLING_TEXTS[Math.floor(Math.random() * GATLING_TEXTS.length)] : null;
+                weaponHeat = Math.min(1, weaponHeat + .13);
+
+                bullets.push({
+                    x: muzzleX,
+                    y: muzzleY,
+                    vx: Math.cos(bAngle) * speed,
+                    vy: Math.sin(bAngle) * speed,
+                    angle: bAngle,
+                    ascended: flight,
+                    label: label,
+                    life: 1.2
+                });
+
+                // Eject brass shell casing
+                shells.push({
+                    x: shoulderX + dirX * 18,
+                    y: shoulderY + dirY * 18,
+                    vx: -dirX * (80 + Math.random() * 80) + (Math.random() - 0.5) * 60,
+                    vy: -180 - Math.random() * 90,
+                    angle: Math.random() * Math.PI,
+                    vAngle: (Math.random() - 0.5) * 25,
+                    life: 2.2
+                });
+
+                // Muzzle flash particles
+                for (let i = 0; i < 4; i++) {
+                    particles.push({
+                        x: muzzleX,
+                        y: muzzleY,
+                        vx: Math.cos(bAngle + (Math.random() - 0.5) * 0.5) * (200 + Math.random() * 250),
+                        vy: Math.sin(bAngle + (Math.random() - 0.5) * 0.5) * (200 + Math.random() * 250),
+                        size: 3 + Math.random() * 3,
+                        color: i % 2 === 0 ? '#f43f5e' : '#facc15',
+                        life: 0.12,
+                        maxLife: 0.12,
+                        glow: true
+                    });
+                }
+
+                addScreenShake(-dirX, -dirY, 2);
+                sfx.playGatling();
+
+            } else if (currentWeapon === 1) {
+                // [2] Gradient Explosion Black Hole Launcher
+                if (stickman.fireCooldown > 0) return;
+                stickman.fireCooldown = 0.65;
+                stickman.recoilOffset = (10 + power * 15) * RECOIL_SCALE;
+                stickman.vx -= dirX * (110 + power * 170) * RECOIL_SCALE;
+                stickman.vy -= dirY * (60 + power * 100) * RECOIL_SCALE;
+                const range = 110 + power * 620;
+                const speed = 600 + power * 900;
+
+                blackHoles.push({
+                    x: muzzleX,
+                    y: muzzleY,
+                    vx: dirX * speed,
+                    vy: dirY * speed,
+                    remaining: range,
+                    power,
+                    radius: 8 + power * 8,
+                    pullRadius: 128 + power * 205,
+                    blastRadius: 160 + power * 250,
+                    life: 3.2 + power * .65,
+                    maxLife: 3.2 + power * .65,
+                    age: 0, collapse: 0, ascended: flight,
+                    phase: 0
+                });
+
+                addScreenShake(-dirX, -dirY, chargedShakeAmount(power, 2, 6));
+                emitSparks(muzzleX, muzzleY, 18, ['#c084fc', '#38bdf8', '#f5d0fe'], 140 + power * 150);
+                sfx.playBlackHoleLaunch();
+
+            } else if (currentWeapon === 2) {
+                // [3] DDL High-Energy Thermal Laser Cutter (Continuous Beam)
+                stickman.recoilOffset = 5 * RECOIL_SCALE;
+                stickman.vx -= dirX * 14 * RECOIL_SCALE;
+                sfx.setLoop('laser', true, .8);
+
+                const beamLen = Math.max(W, H) * 1.3;
+                const endX = muzzleX + dirX * beamLen;
+                const endY = muzzleY + dirY * beamLen;
+                scorchLaserLine(muzzleX, muzzleY, endX, endY);
+
+                // Slice and scorch along ray
+                const steps = 42;
+                for (let i = 1; i <= steps; i++) {
+                    const t = i / steps;
+                    const px = muzzleX + (endX - muzzleX) * t;
+                    const py = muzzleY + (endY - muzzleY) * t;
+                    if (px >= paperRect.x && px <= paperRect.x + paperRect.w && py >= paperRect.y && py <= paperRect.y + paperRect.h) {
+                        if (Math.random() < 0.18) {
+                            particles.push({
+                                x: px,
+                                y: py,
+                                vx: (Math.random() - 0.5) * 260,
+                                vy: (Math.random() - 0.5) * 260,
+                                size: 2 + Math.random() * 3,
+                                color: Math.random() < 0.5 ? '#ec4899' : '#facc15',
+                                life: 0.25 + Math.random() * 0.2,
+                                maxLife: 0.45,
+                                glow: true
+                            });
+                        }
+                    }
+                }
+
+                // Check line-to-word distance
+                for (const wb of wordBodies) {
+                    if (wb.state === 'obliterated') continue;
+                    if (segmentHitsBox(muzzleX, muzzleY, endX, endY, wb, 4)) {
+                        damageWordBody(wb, dirX * 260 + (Math.random() - 0.5) * 200, dirY * 260 - 150, Math.random() < 0.45);
+                    }
+                }
+
+                addScreenShake((Math.random() - 0.5), (Math.random() - 0.5), 1);
+
+            } else if (currentWeapon === 3) {
+                // [4] Baseline Crusher Giant Sledgehammer
+                if (stickman.hammerCooldown > 0) return;
+                stickman.hammerCooldown = 0.48;
+                stickman.hammerSwing = 1.0;
+
+                stickman.recoilOffset = (8 + power * 7) * RECOIL_SCALE;
+                stickman.vx += dirX * (100 + power * 220) * RECOIL_SCALE;
+                stickman.vy += (dirY * 100 - 50) * RECOIL_SCALE;
+                hammerWaves.push({ x: muzzleX, y: muzzleY, angle, power, traveled: 0,
+                    range: 70 + power * 620, speed: 780 + power * 620, ascended: flight });
+                emitSparks(muzzleX, muzzleY, 16, ['#f59e0b', '#fef3c7', '#fb923c'], 130 + power * 180);
+            } else if (currentWeapon === 4) {
+                if (stickman.fireCooldown > 0) return;
+                stickman.fireCooldown = .32; stickman.swordSwing = 1; stickman.recoilOffset = 3;
+                const x = stickman.x, y = shoulderY;
+                swordSlashes.push({ x, y, angle, radius: 64, life: .22, maxLife: .22, ascended: flight });
+                scratchSwordArc(x, y, angle, 64);
+                const targets = wordBodies.filter(w => w.state !== 'obliterated' && Math.hypot(w.x - x, w.y - y) < 70 && Math.abs(Math.atan2(Math.sin(Math.atan2(w.y - y, w.x - x) - angle), Math.cos(Math.atan2(w.y - y, w.x - x) - angle))) < 1.05)
+                    .sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y));
+                for (const body of targets.slice(0, 5)) damageWordBody(body, dirX * 180, dirY * 180 - 65);
+                if (power > 0) swordWaves.push({ x: muzzleX, y: muzzleY, angle, power, traveled: 0,
+                    range: 140 + power * 140, speed: 600, hit: new Set(), ascended: flight });
+                emitSparks(muzzleX, muzzleY, 12, flight ? ['#fbbf24', '#ef4444', '#fff7ed'] : ['#67e8f9', '#dffbff'], 100);
+                addScreenShake(-dirX, -dirY, 1.8); sfx.playSword(power > 0);
+            }
+        }
+
+        function scratchSwordArc(x, y, angle, radius) {
+            damageIdleTime = 0; damageCtx.save(); damageCtx.translate(x - paperRect.x, y - paperRect.y);
+            damageCtx.strokeStyle = '#402c28'; damageCtx.lineWidth = 1.2; damageCtx.beginPath();
+            damageCtx.arc(0, 0, radius, angle - .95, angle + .95); damageCtx.stroke();
+            damageCtx.strokeStyle = '#a07051'; damageCtx.lineWidth = .5; damageCtx.beginPath();
+            damageCtx.arc(0, 0, radius - 3, angle - .85, angle + .85); damageCtx.stroke(); damageCtx.restore();
+        }
+
+        function slamHammer(impactX, impactY, power, ascended = flight) {
+                const blastRadius = 100 + power * 160;
+
+                // Hit-stop micro freeze for juicy impact feel!
+                hitStopTimer = 0.042;
+                addScreenShake(0, 1, chargedShakeAmount(power, 3, 32));
+                sfx.playHammerSlam();
+                scorchPaperAt(impactX, impactY, 30 + power * 55, false);
+                // Angular fractures and a second shock front reinforce the existing gold style.
+                damageCtx.save(); damageCtx.translate(impactX - paperRect.x, impactY - paperRect.y);
+                damageCtx.strokeStyle = '#4c2b1b'; damageCtx.lineWidth = 1.5;
+                for (let i = 0; i < 9; i++) {
+                    const a = i / 9 * Math.PI * 2, length = (25 + power * 85) * (.7 + Math.random() * .3);
+                    damageCtx.beginPath(); damageCtx.moveTo(0, 0);
+                    damageCtx.lineTo(Math.cos(a + .15) * length * .5, Math.sin(a + .15) * length * .5);
+                    damageCtx.lineTo(Math.cos(a) * length, Math.sin(a) * length); damageCtx.stroke();
+                }
+                damageCtx.restore();
+                emitSparks(impactX, impactY, 30 + Math.round(power * 32), ['#f59e0b', '#fef3c7', '#fb923c'], 220 + power * 340);
+                if (ascended) {
+                    emitSparks(impactX, impactY, 35, ['#fbbf24', '#ef4444', '#fff7ed'], 420);
+                    shockwaves.push({ x: impactX, y: impactY, radius: 10, maxRadius: blastRadius * 1.1, color: '#ef4444', life: .5, maxLife: .5 });
+                }
+                shockwaves.push({ x: impactX, y: impactY, radius: 8, maxRadius: blastRadius * .7, color: '#fef3c7', life: .23, maxLife: .23 });
+
+                shockwaves.push({
+                    x: impactX,
+                    y: impactY,
+                    radius: 12,
+                    maxRadius: blastRadius,
+                    color: '#f59e0b',
+                    life: 0.35,
+                    maxLife: 0.35
+                });
+
+    
+                for (const wb of wordBodies) {
+                    if (wb.state === 'obliterated') continue;
+                    const dx = wb.x - impactX;
+                    const dy = wb.y - impactY;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < blastRadius) {
+                        const force = (1 - dist / blastRadius) * (420 + power * 900);
+                        const nx = dx / (dist || 1);
+                        const ny = dy / (dist || 1);
+                        damageWordBody(wb, nx * force, ny * force - 240, dist < 22 + power * 110);
+                    }
+                }
+        }
+
+        function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+            const A = px - x1;
+            const B = py - y1;
+            const C = x2 - x1;
+            const D = y2 - y1;
+            const dot = A * C + B * D;
+            const lenSq = C * C + D * D;
+            let param = -1;
+            if (lenSq !== 0) param = dot / lenSq;
+            let xx, yy;
+            if (param < 0) { xx = x1; yy = y1; }
+            else if (param > 1) { xx = x2; yy = y2; }
+            else { xx = x1 + param * C; yy = y1 + param * D; }
+            return Math.hypot(px - xx, py - yy);
+        }
+
+        function segmentHitsBox(x1, y1, x2, y2, body, padding = 0) {
+            const bounds = [body.x - body.w / 2 - padding, body.x + body.w / 2 + padding,
+                body.y - body.h / 2 - padding, body.y + body.h / 2 + padding];
+            let near = 0, far = 1;
+            for (const [start, delta, min, max] of [[x1, x2 - x1, bounds[0], bounds[1]], [y1, y2 - y1, bounds[2], bounds[3]]]) {
+                if (Math.abs(delta) < .00001) { if (start < min || start > max) return false; }
+                else {
+                    const a = (min - start) / delta, b = (max - start) / delta;
+                    near = Math.max(near, Math.min(a, b)); far = Math.min(far, Math.max(a, b));
+                    if (near > far) return false;
+                }
+            }
+            return true;
+        }
+
+        function updateSimulation(dt) {
+            fadeDamageMarks(dt);
+            // 1. Update the frame-rate independent camera response.
+            updateScreenShake(dt);
+            if (screenFlash > 0) screenFlash = Math.max(0, screenFlash - dt * 2.8);
+
+            // 2. Rewind / Re-typeset interpolation
+            if (rewindMode) {
+                rewindTimer += dt;
+                // Gradually clear scorch marks on paper
+                damageCtx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+                damageCtx.globalCompositeOperation = 'destination-out';
+                damageCtx.fillRect(0, 0, paperRect.w, paperRect.h);
+                damageCtx.globalCompositeOperation = 'source-over';
+                residueCtx.save(); residueCtx.globalCompositeOperation = 'destination-out'; residueCtx.fillStyle = '#ffffff22';
+                residueCtx.fillRect(0, 0, residueCanvas.width, residueCanvas.height); residueCtx.restore();
+                for (const p of particles) { p.x -= p.vx * dt * .5; p.y -= p.vy * dt * .5; }
+
+                let allRestored = true;
+                for (const wb of wordBodies) {
+                    if (wb.state !== 'formatted') {
+                        wb.state = 'detached';
+                        wb.x += (wb.origX - wb.x) * 0.18;
+                        wb.y += (wb.origY - wb.y) * 0.18;
+                        wb.angle += (0 - wb.angle) * 0.2;
+                        wb.vx = 0;
+                        wb.vy = 0;
+                        if (Math.hypot(wb.origX - wb.x, wb.origY - wb.y) < 1.5 && Math.abs(wb.angle) < 0.05) {
+                            wb.x = wb.origX;
+                            wb.y = wb.origY;
+                            wb.angle = 0;
+                            wb.state = 'formatted';
+                        } else {
+                            allRestored = false;
+                        }
+                    }
+                }
+                if ((allRestored && rewindTimer >= 1.1) || rewindTimer > 1.5) {
+                    rewindMode = false;
+                    damageCtx.clearRect(0, 0, paperRect.w, paperRect.h);
+                    residueCtx.clearRect(0, 0, residueCanvas.width, residueCanvas.height);
+                    wordBodies.forEach(wb => {
+                        wb.x = wb.origX;
+                        wb.y = wb.origY;
+                        wb.angle = 0;
+                        wb.state = 'formatted';
+                    });
+                }
+                
+                return;
+            }
+
+            // 3. Stickman & Continuous Firing
+            stickman.update(dt);
+            weaponHeat = Math.max(0, weaponHeat - dt * .45);
+            if (charge.active) {
+                charge.elapsed = Math.min(charge.max, charge.elapsed + dt);
+                charge.pulse += dt;
+                if (charge.pulse >= .04) {
+                    charge.pulse = 0;
+                    const a = Math.random() * Math.PI * 2, r = 22 + charge.elapsed * 17;
+                    const { muzzleX: mx, muzzleY: my } = weaponPose();
+                    emitSparks(mx + Math.cos(a) * r, my + Math.sin(a) * r, 1,
+                        flight ? ['#fbbf24', '#ef4444'] : charge.weapon === 1 ? ['#c084fc', '#38bdf8'] : charge.weapon === 4 ? ['#67e8f9', '#dffbff'] : ['#fbbf24', '#fb923c'], 12, -Math.cos(a) * 100, -Math.sin(a) * 100);
+                }
+            }
+            if (mouse.down && !charge.active) {
+                fireWeapon(dt);
+            }
+
+            for (let i = hammerWaves.length - 1; i >= 0; i--) {
+                const hammer = hammerWaves[i];
+                const step = Math.min(hammer.range - hammer.traveled, hammer.speed * dt);
+                hammer.x += Math.cos(hammer.angle) * step; hammer.y += Math.sin(hammer.angle) * step;
+                hammer.traveled += step;
+                emitSparks(hammer.x, hammer.y, 2, ['#f59e0b', '#fef3c7'], 70, -Math.cos(hammer.angle) * 100, -Math.sin(hammer.angle) * 100);
+                if (hammer.traveled >= hammer.range) {
+                    slamHammer(hammer.x, hammer.y, hammer.power, hammer.ascended); hammerWaves.splice(i, 1);
+                }
+            }
+            for (let i = swordSlashes.length - 1; i >= 0; i--) {
+                swordSlashes[i].life -= dt; if (swordSlashes[i].life <= 0) swordSlashes.splice(i, 1);
+            }
+            for (let i = swordWaves.length - 1; i >= 0; i--) {
+                const wave = swordWaves[i], oldX = wave.x, oldY = wave.y;
+                const step = Math.min(wave.range - wave.traveled, wave.speed * dt);
+                wave.x += Math.cos(wave.angle) * step; wave.y += Math.sin(wave.angle) * step; wave.traveled += step;
+                for (const body of wordBodies) {
+                    if (wave.hit.size >= 8 || wave.hit.has(body) || body.state === 'obliterated') continue;
+                    if (segmentHitsBox(oldX, oldY, wave.x, wave.y, body, 12)) {
+                        wave.hit.add(body); damageWordBody(body, Math.cos(wave.angle) * 190, Math.sin(wave.angle) * 190 - 70);
+                        scorchLaserLine(oldX, oldY, wave.x, wave.y);
+                    }
+                }
+                if (wave.traveled >= wave.range) { scratchSwordArc(wave.x, wave.y, wave.angle, 18); swordWaves.splice(i, 1); }
+            }
+
+            // 4. Gatling Bullets
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                const b = bullets[i];
+                const oldX = b.x, oldY = b.y;
+                b.x += b.vx * dt;
+                b.y += b.vy * dt;
+                b.life -= dt;
+
+                let hit = false;
+                for (const wb of wordBodies) {
+                    if (wb.state === 'obliterated') continue;
+                    if (segmentHitsBox(oldX, oldY, b.x, b.y, wb, 3)) {
+                        damageWordBody(wb, b.vx * 0.32, b.vy * 0.32 - 80);
+                        scorchPaperAt(b.x, b.y, 12 + Math.random() * 8);
+                        emitSparks(b.x, b.y, 5, ['#f43f5e', '#facc15', '#fda4af'], 190);
+                        hit = true;
+                        break;
+                    }
+                }
+
+                if (hit || b.life <= 0 || b.x < -100 || b.x > W + 100 || b.y < -100 || b.y > H + 100) {
+                    bullets.splice(i, 1);
+                }
+            }
+
+            // 5. Ejected Brass Shells
+            const floorY = H - 16;
+            for (let i = shells.length - 1; i >= 0; i--) {
+                const s = shells[i];
+                s.vy += 1200 * dt;
+                s.x += s.vx * dt;
+                s.y += s.vy * dt;
+                s.angle += s.vAngle * dt;
+                s.life -= dt;
+                if (s.y > floorY) {
+                    s.y = floorY;
+                    s.vy *= -0.45;
+                    s.vx *= 0.7;
+                    s.vAngle *= 0.6;
+                }
+                if (s.life <= 0) shells.splice(i, 1);
+            }
+
+            // 6. Gradient Explosion Black Holes (Gravitational Vortex + Supernova)
+            for (let i = blackHoles.length - 1; i >= 0; i--) {
+                const bh = blackHoles[i];
+                const speed = Math.hypot(bh.vx, bh.vy);
+                const step = Math.min(bh.remaining, speed * dt);
+                if (speed > 0) { bh.x += bh.vx / speed * step; bh.y += bh.vy / speed * step; }
+                bh.remaining -= step;
+                bh.life -= dt;
+                bh.age += dt;
+                bh.collapse = Math.clamp(bh.age / bh.maxLife, 0, 1);
+                bh.phase += dt * 12;
+                const fieldRadius = bh.pullRadius * (.25 + .75 * Math.pow(bh.collapse, .65));
+
+                scorchPaperAt(bh.x, bh.y, Math.max(4, bh.radius * (bh.remaining > 0 ? .32 : .5)), false);
+
+                // Pull nearby words into swirling vortex
+                for (const wb of wordBodies) {
+                    if (wb.state === 'obliterated') continue;
+                    const dx = bh.x - wb.x;
+                    const dy = bh.y - wb.y;
+                    const dist = Math.hypot(dx, dy);
+                    if (dist < fieldRadius) {
+                        if (wb.state === 'formatted') {
+                            wb.state = 'detached';
+                            sfx.playWordDetach();
+                        }
+                        const pull = (1 - dist / fieldRadius) * (1400 + bh.power * 2400) * (.4 + bh.collapse * .7) * dt;
+                        const nx = dx / (dist || 1);
+                        const ny = dy / (dist || 1);
+                        // Swirl tangent + inward pull
+                        wb.vx += (nx * pull - ny * pull * 0.65);
+                        wb.vy += (ny * pull + nx * pull * 0.5) - 980 * dt * .85;
+                        wb.vAngle += 18 * dt;
+                        if (dist < bh.radius * .8) damageWordBody(wb, 0, 0, true);
+                    }
+                }
+
+                // Emit inward accretion particles
+                if (Math.random() < 0.7) {
+                    const ang = Math.random() * Math.PI * 2;
+                    const dist = 30 + Math.random() * fieldRadius * .65;
+                    particles.push({
+                        x: bh.x + Math.cos(ang) * dist,
+                        y: bh.y + Math.sin(ang) * dist,
+                        vx: -Math.cos(ang) * 220,
+                        vy: -Math.sin(ang) * 220,
+                        size: 2.5 + Math.random() * 2.5,
+                        color: bh.ascended ? (Math.random() < .5 ? '#fbbf24' : '#ef4444') : (Math.random() < 0.5 ? '#c084fc' : '#38bdf8'),
+                        life: 0.28,
+                        maxLife: 0.28,
+                        glow: true
+                    });
+                }
+
+                // Detonate Supernova when timer expires!
+                if (bh.life <= 0) {
+                    hitStopTimer = 0.048; // 48ms Hit-stop freeze!
+                    screenFlash = 0.08;
+                    addScreenShake((Math.random() - 0.5) * 2, (Math.random() - 0.5) * 2, chargedShakeAmount(bh.power, 3, 34));
+                    sfx.playSupernova();
+                    scorchPaperAt(bh.x, bh.y, 55 + bh.power * 95, true);
+
+                    shockwaves.push({
+                        x: bh.x,
+                        y: bh.y,
+                        radius: 15,
+                        maxRadius: bh.blastRadius,
+                        inward: true,
+                        color: '#a855f7',
+                        life: 0.45,
+                        maxLife: 0.45
+                    });
+
+        
+                    for (const wb of wordBodies) {
+                        if (wb.state === 'obliterated') continue;
+                        const dx = wb.x - bh.x;
+                        const dy = wb.y - bh.y;
+                        const dist = Math.hypot(dx, dy);
+                        if (dist < bh.blastRadius) {
+                            const blast = (1 - dist / bh.blastRadius) * (650 + bh.power * 1300);
+                            const nx = dx / (dist || 1);
+                            const ny = dy / (dist || 1);
+                            damageWordBody(wb, nx * blast, ny * blast - 250, dist < 35 + bh.power * 145);
+                        }
+                    }
+
+                    for (let p = 0; p < 55; p++) {
+                        const a = Math.random() * Math.PI * 2;
+                        const sp = 140 + Math.random() * 680;
+                        particles.push({
+                            x: bh.x + Math.cos(a) * 120,
+                            y: bh.y + Math.sin(a) * 120,
+                            vx: -Math.cos(a) * sp * .45,
+                            vy: -Math.sin(a) * sp * .45,
+                            size: 3 + Math.random() * 4.5,
+                            color: p % 3 === 0 ? '#38bdf8' : (p % 2 === 0 ? '#c084fc' : '#f43f5e'),
+                            life: 0.5 + Math.random() * 0.4,
+                            maxLife: 0.9,
+                            glow: true
+                        });
+                    }
+
+                    blackHoles.splice(i, 1);
+                }
+            }
+
+            // 7. Update Detached Word Rigid Bodies (Gravity, Spin & Pile-up at Bottom)
+            const pileFloorY = H - 22;
+            for (const wb of wordBodies) {
+                if (wb.state !== 'detached') continue;
+                wb.vy += 980 * dt; // Gravity
+                wb.vx *= Math.pow(0.45, dt); // Air drag
+                wb.x += wb.vx * dt;
+                wb.y += wb.vy * dt;
+                wb.angle += wb.vAngle * dt;
+
+                // Bounce off bottom screen pile
+                if (wb.y > pileFloorY) {
+                    wb.y = pileFloorY;
+                    wb.vy *= -0.38;
+                    wb.vx *= 0.72;
+                    wb.vAngle *= 0.65;
+                }
+                // Bounce off side walls
+                if (wb.x < 30 || wb.x > W - 30) {
+                    wb.vx *= -0.6;
+                    wb.x = Math.clamp(wb.x, 30, W - 30);
+                }
+            }
+
+            // 8. Update Particles, Shockwaves & Floating Labels
+            if (particles.length > 1800) particles.splice(0, particles.length - 1800);
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx * dt;
+                p.y += p.vy * dt;
+                p.vy += 360 * dt;
+                p.life -= dt;
+                if (p.life <= 0) particles.splice(i, 1);
+            }
+
+            for (let i = shockwaves.length - 1; i >= 0; i--) {
+                const sw = shockwaves[i];
+                sw.life -= dt;
+                const progress = 1 - sw.life / sw.maxLife;
+                sw.radius = sw.inward ? sw.maxRadius * Math.pow(1 - progress, 2) : sw.maxRadius * (1 - Math.pow(1 - progress, 3));
+                if (sw.life <= 0) shockwaves.splice(i, 1);
+            }
+
+
+            if (forceAccepted && acceptStampScale < 1) {
+                acceptStampScale = Math.min(1, acceptStampScale + dt * 6.5);
+            }
+
+            
+        }
+
+        function renderScene() {
+            const audioActive = audioFocused && !document.hidden;
+            sfx.sync(audioActive && mouse.down && currentWeapon === 2 && !rewindMode, audioActive ? blackHoles.length : 0,
+                audioActive && charge.active && charge.weapon === 1 ? Math.max(.01, charge.elapsed / charge.max) : 0);
+            ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+            ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = 'high';
+            ctx.save();
+            ctx.fillStyle = '#0b0d12';
+            ctx.fillRect(0, 0, W, H);
+
+            // Apply Directional Screen Shake
+            ctx.translate(screenShake.x, screenShake.y);
+
+            // 1. Subtle Dark Editorial Grid Background
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.028)';
+            ctx.lineWidth = 1;
+            const gridSize = 42;
+            ctx.beginPath();
+            for (let x = 0; x < W; x += gridSize) {
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, H);
+            }
+            for (let y = 0; y < H; y += gridSize) {
+                ctx.moveTo(0, y);
+                ctx.lineTo(W, y);
+            }
+            ctx.stroke();
+
+            // 2. Academic Paper Sheet with Deep Shadow
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.78)';
+            ctx.shadowBlur = 45;
+            ctx.shadowOffsetY = 18;
+            ctx.fillStyle = '#fcfaf5'; // Warm LaTeX Ivory Paper
+            const sheets = currentTemplateKey === 'pdf' && currentPdfPageData ? currentPdfPageData.pages.map(p => p.rect) : [paperRect];
+            for (const sheet of sheets) {
+                ctx.beginPath(); ctx.roundRect(sheet.x, sheet.y, sheet.w, sheet.h, 3); ctx.fill();
+            }
+            ctx.restore();
+            if (currentTemplateKey === 'pdf') {
+                if (currentPdfPageData) {
+                    for (const page of currentPdfPageData.pages) ctx.drawImage(page.data.source, page.rect.x, page.rect.y, page.rect.w, page.rect.h);
+                    // Remove hit text from the original page; draw detached crops as paper shreds below.
+                    for (const body of wordBodies) {
+                        if (body.state === 'formatted') continue;
+                        ctx.fillStyle = body.background;
+                        ctx.fillRect(body.origX - body.w / 2, body.origY - body.h / 2, body.w, body.h);
+                    }
+                } else {
+                    ctx.save(); ctx.font = '14px sans-serif'; ctx.fillStyle = '#475569'; ctx.textAlign = 'center';
+                    ctx.fillText(pdfPageError || '正在加载 PDF 页面…', paperRect.x + paperRect.w / 2, paperRect.y + paperRect.h / 2); ctx.restore();
+                }
+            }
+
+            // 3. Draw Decorative LaTeX Lines, Figure 1 Axes & Platform Ledges on Paper
+            ctx.strokeStyle = 'rgba(15, 23, 42, 0.18)';
+            ctx.lineWidth = 1;
+            for (const plat of platforms) {
+                if (currentTemplateKey === 'pdf') continue;
+                ctx.beginPath();
+                ctx.moveTo(plat.x, plat.y);
+                ctx.lineTo(plat.x + plat.w, plat.y);
+                ctx.stroke();
+            }
+
+            // 4. Strong scorch marks remain visible, then expire after four seconds.
+            ctx.save();
+            ctx.beginPath();
+            for (const sheet of sheets) ctx.rect(sheet.x, sheet.y, sheet.w, sheet.h);
+            ctx.clip();
+            commitDamageResidue();
+            ctx.globalAlpha = .14;
+            ctx.drawImage(residueCanvas, paperRect.x, paperRect.y);
+            ctx.globalAlpha = .9;
+            ctx.drawImage(damageCanvas, paperRect.x, paperRect.y);
+            ctx.restore();
+
+            // 5. Render All Word & Chart Bar Rigid Bodies
+            const damagedGraphics = currentTemplateKey === 'pdf' && wordBodies.some(w => w.type === 'pdfGraphic' && w.state !== 'formatted');
+            for (const wb of wordBodies) {
+                if (wb.state === 'obliterated') continue;
+                ctx.save();
+                ctx.translate(wb.x, wb.y);
+                if (wb.angle !== 0) ctx.rotate(wb.angle);
+                for (const well of blackHoles) {
+                    const distance = Math.hypot(wb.x - well.x, wb.y - well.y);
+                    if (distance < well.radius * 3.5) { const scale = Math.max(.12, distance / (well.radius * 3.5)); ctx.scale(scale, scale); break; }
+                }
+
+                if (wb.type === 'pdfText' || wb.type === 'pdfGraphic') {
+                    if (currentPdfPageData && (wb.state !== 'formatted' || (wb.type === 'pdfText' && damagedGraphics))) {
+                        const page = currentPdfPageData.pages.find(p => p.index === wb.pageIndex);
+                        const source = wb.type === 'pdfGraphic' ? page.data.graphics : page.data.source;
+                        ctx.drawImage(source, wb.sx, wb.sy, wb.sw, wb.sh, -wb.w / 2, -wb.h / 2, wb.w, wb.h);
+                    }
+                } else if (wb.type === 'bar') {
+                    // Chart Bar Entity
+                    ctx.fillStyle = wb.color;
+                    ctx.fillRect(-wb.w * 0.5, -wb.h * 0.5, wb.w, wb.h);
+                    ctx.strokeStyle = '#0f172a';
+                    ctx.lineWidth = 1;
+                    ctx.strokeRect(-wb.w * 0.5, -wb.h * 0.5, wb.w, wb.h);
+
+                    ctx.font = wb.font;
+                    ctx.fillStyle = '#334155';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(wb.text, 0, wb.h * 0.5 + 12);
+                } else {
+                    // Word or Math Equation Token
+                    ctx.font = wb.font;
+                    ctx.fillStyle = wb.state === 'detached' ? '#0f172a' : wb.color;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'bottom';
+                    if (wb.state === 'detached') {
+                        // Subtle highlight glow on flying detached words
+                        ctx.fillStyle = wb.isMath ? '#be123c' : '#0f172a';
+                    }
+                    ctx.fillText(wb.text, 0, wb.h * 0.5);
+                }
+                ctx.restore();
+            }
+
+            for (const well of blackHoles) drawSpaceCollapse(well);
+
+            // 6. Render Active DDL Continuous Laser Beam (if holding mouse with Weapon 2)
+            if (mouse.down && currentWeapon === 2 && !rewindMode) {
+                const { dirX, dirY, muzzleX, muzzleY } = weaponPose();
+                const endX = muzzleX + dirX * 2000;
+                const endY = muzzleY + dirY * 2000;
+
+                ctx.save();
+                ctx.globalCompositeOperation = 'lighter';
+                // Outer neon magenta halo
+                ctx.strokeStyle = flight ? 'rgba(239,68,68,.7)' : 'rgba(236, 72, 153, 0.55)';
+                ctx.lineWidth = (flight ? 32 : 22) + Math.sin(performance.now() * 0.06) * 6;
+                ctx.lineCap = 'round';
+                ctx.beginPath();
+                ctx.moveTo(muzzleX, muzzleY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+
+                // Core blinding white-gold beam
+                ctx.strokeStyle = '#fef08a';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(muzzleX, muzzleY);
+                ctx.lineTo(endX, endY);
+                ctx.stroke();
+                ctx.strokeStyle = '#fff7ed'; ctx.lineWidth = 1.8;
+                ctx.beginPath(); ctx.moveTo(muzzleX, muzzleY); ctx.lineTo(endX, endY); ctx.stroke();
+                // Traveling interference filaments inside the existing magenta halo.
+                ctx.strokeStyle = flight ? '#fbbf24' : '#f472b6'; ctx.lineWidth = flight ? 2 : .8;
+                for (let side = -1; side <= 1; side += 2) {
+                    ctx.beginPath();
+                    for (let i = 0; i <= 36; i++) {
+                        const t = i / 36, offset = Math.sin(t * 55 - performance.now() * .035) * 5 * side;
+                        const x = muzzleX + (endX - muzzleX) * t - dirY * offset;
+                        const y = muzzleY + (endY - muzzleY) * t + dirX * offset;
+                        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+                    }
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            // 7. Render Black Hole Singularities
+            for (const bh of blackHoles) {
+                ctx.save();
+                ctx.translate(bh.x, bh.y);
+
+                // Fine plasma filaments spiral into a compact event horizon.
+                for (let arm = 0; arm < 5; arm++) {
+                    ctx.strokeStyle = bh.ascended ? '#fbbf2477' : '#a5b4fc66'; ctx.lineWidth = .7;
+                    ctx.beginPath();
+                    for (let j = 0; j < 32; j++) {
+                        const t = j / 31, r = bh.radius + (1 - t) * (35 + bh.collapse * 45);
+                        const a = arm * Math.PI * .4 + t * 4.5 - bh.phase * .15;
+                        if (!j) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r); else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+                    }
+                    ctx.stroke();
+                }
+
+                // Accretion disk glow
+                const grad = ctx.createRadialGradient(0, 0, bh.radius * 0.4, 0, 0, bh.radius * 2.8);
+                grad.addColorStop(0, '#000000');
+                grad.addColorStop(0.45, bh.ascended ? '#b45309' : '#53219a');
+                grad.addColorStop(0.8, 'rgba(56, 189, 248, 0.4)');
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath();
+                ctx.arc(0, 0, bh.radius * 2.8, 0, Math.PI * 2);
+                ctx.fill();
+
+                for (let i = 0; i < 3; i++) {
+                    ctx.save(); ctx.rotate(bh.phase * .22 + i * Math.PI / 3);
+                    ctx.strokeStyle = bh.ascended ? (i % 2 ? '#ef4444' : '#fde68a') : (i % 2 ? '#38bdf8' : '#d8b4fe'); ctx.lineWidth = .7 + bh.power * .5;
+                    ctx.shadowColor = '#a855f7'; ctx.shadowBlur = 12;
+                    ctx.beginPath(); ctx.ellipse(0, 0, bh.radius * (2 + i * .25), bh.radius * .55, 0, bh.phase, bh.phase + 4.7); ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Event horizon core
+                ctx.fillStyle = '#030712';
+                ctx.strokeStyle = bh.ascended ? '#fff7d6' : '#f0dfff';
+                ctx.lineWidth = 1.1;
+                ctx.beginPath();
+                ctx.arc(0, 0, bh.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            // 8. Render Gatling Bullets & Flying "REJECT" Text Projectiles
+            for (const b of bullets) {
+                ctx.save();
+                ctx.translate(b.x, b.y);
+                ctx.rotate(b.angle);
+                if (b.ascended) {
+                    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 7; ctx.globalAlpha = .65;
+                    ctx.beginPath(); ctx.moveTo(-85, 0); ctx.lineTo(10, 0); ctx.stroke(); ctx.globalAlpha = 1;
+                    ctx.fillStyle = '#fde68a'; ctx.fillRect(-30, -3.5, 40, 7);
+                }
+
+                const trail = ctx.createLinearGradient(-65, 0, 12, 0);
+                trail.addColorStop(0, '#f43f5e00'); trail.addColorStop(.8, '#f43f5e88'); trail.addColorStop(1, '#fef3c7');
+                ctx.fillStyle = trail; ctx.fillRect(-65, -1.3, 77, 2.6);
+                ctx.fillStyle = '#fbbf24'; ctx.shadowColor = '#f43f5e'; ctx.shadowBlur = 10;
+                ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(8, -3); ctx.lineTo(-8, -3); ctx.lineTo(-8, 3); ctx.lineTo(8, 3); ctx.closePath(); ctx.fill();
+                ctx.fillStyle = '#fff7ed'; ctx.fillRect(-6, -1, 14, 1.2);
+
+                if (b.label) {
+                    ctx.font = '800 11px "JetBrains Mono", monospace';
+                    ctx.fillStyle = '#f43f5e';
+                    ctx.shadowColor = '#f43f5e';
+                    ctx.shadowBlur = 10;
+                    ctx.fillText(b.label, -20, -10);
+                }
+                ctx.restore();
+            }
+
+            // 9. Render Brass Shells
+            ctx.fillStyle = '#f59e0b';
+            for (const s of shells) {
+                ctx.save();
+                ctx.translate(s.x, s.y);
+                ctx.rotate(s.angle);
+                ctx.fillRect(-3.5, -1.5, 7, 3);
+                ctx.restore();
+            }
+
+            // 10. Render Procedural Stickman
+            for (const hammer of hammerWaves) {
+                ctx.save(); ctx.translate(hammer.x, hammer.y); ctx.rotate(hammer.angle);
+                ctx.shadowColor = '#f59e0b'; ctx.shadowBlur = 22;
+                if (hammer.ascended) {
+                    ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 30, hammer.traveled * .02, hammer.traveled * .02 + 5); ctx.stroke();
+                    ctx.strokeStyle = '#fff7d6'; ctx.beginPath(); ctx.arc(0, 0, 23, -hammer.traveled * .02, -hammer.traveled * .02 + 4); ctx.stroke();
+                }
+                ctx.strokeStyle = '#f59e0b66'; ctx.lineWidth = 14 + hammer.power * 12;
+                ctx.beginPath(); ctx.moveTo(-75, 0); ctx.lineTo(0, 0); ctx.stroke();
+                ctx.rotate(hammer.traveled * .025);
+                ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(-22, 0); ctx.lineTo(14, 0); ctx.stroke();
+                ctx.fillStyle = '#1e293b'; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.roundRect(6, -18, 18, 36, 3); ctx.fill(); ctx.stroke();
+                ctx.fillStyle = '#fef3c7'; ctx.fillRect(9, -12, 12, 3); ctx.fillRect(9, 9, 12, 3); ctx.restore();
+            }
+            stickman.draw(ctx);
+            drawWeaponEnergy();
+            for (const slash of [...swordSlashes, ...swordWaves]) {
+                ctx.save(); ctx.translate(slash.x, slash.y); ctx.rotate(slash.angle);
+                ctx.globalCompositeOperation = 'lighter'; ctx.shadowColor = slash.ascended ? '#ef4444' : '#22d3ee'; ctx.shadowBlur = 20;
+                ctx.strokeStyle = slash.ascended ? '#fbbf24' : '#67e8f9';
+                const wave = slash.traveled !== undefined, radius = wave ? 24 + slash.power * 9 : slash.radius;
+                ctx.globalAlpha = wave ? 1 : slash.life / slash.maxLife; ctx.lineWidth = slash.ascended ? 5 : 3;
+                ctx.beginPath(); ctx.arc(wave ? -radius * .75 : 0, 0, radius, -1, 1); ctx.stroke();
+                ctx.strokeStyle = '#fff7ed'; ctx.lineWidth = 1; ctx.stroke();
+                if (slash.ascended) { ctx.strokeStyle = '#ef4444'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(-7, 0, radius + 8, -1.15, 1.15); ctx.stroke(); }
+                ctx.restore();
+            }
+
+            // 11. Render Highlighter Particles & Shockwaves (Additive Glow)
+            ctx.save();
+            ctx.globalCompositeOperation = 'lighter';
+            for (const p of particles) {
+                const alpha = Math.clamp(p.life / p.maxLife, 0, 1);
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = alpha;
+                if (p.glow) {
+                    ctx.strokeStyle = p.color; ctx.lineWidth = Math.max(.7, p.size * .6);
+                    ctx.beginPath(); ctx.moveTo(p.x - p.vx * .018, p.y - p.vy * .018); ctx.lineTo(p.x, p.y); ctx.stroke();
+                }
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            for (const sw of shockwaves) {
+                const alpha = Math.clamp(sw.life / sw.maxLife, 0, 1);
+                ctx.strokeStyle = sw.color;
+                ctx.globalAlpha = alpha;
+                ctx.lineWidth = 6 * alpha;
+                ctx.beginPath();
+                ctx.arc(sw.x, sw.y, sw.radius, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            ctx.restore();
+
+            if (forceAccepted) {
+                ctx.save(); ctx.translate(paperRect.x + paperRect.w / 2, paperRect.y + paperRect.h * .45); ctx.rotate(-.13);
+                const stampScale = 1 + (1 - acceptStampScale) * .35;
+                ctx.scale(stampScale, stampScale); const fontSize = Math.min(86, paperRect.w * .14); ctx.font = `900 ${fontSize}px Georgia,serif`;
+                ctx.fillStyle = '#10b981'; ctx.globalAlpha = .9; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+                const stampWidth = ctx.measureText('Accept').width + fontSize * .65;
+                ctx.strokeStyle = '#10b981'; ctx.lineWidth = 3.5; ctx.strokeRect(-stampWidth / 2, -fontSize * .65, stampWidth, fontSize * 1.3);
+                ctx.fillText('Accept', 0, 0); ctx.restore();
+            }
+            if (rewindMode) drawTimeRewind();
+
+            // Screen Flash Overlay on Supernova / Accept Stamp
+            if (screenFlash > 0) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${screenFlash})`;
+                ctx.fillRect(-50, -50, W + 100, H + 100);
+            }
+
+            ctx.restore();
+        }
+
+        function drawWeaponEnergy() {
+            const { angle: a, dirX: dx, dirY: dy, muzzleX: x, muzzleY: y } = weaponPose();
+            if (currentWeapon === 0 && weaponHeat > .08) {
+                ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+                ctx.fillStyle = `rgba(255,160,50,${weaponHeat * .65})`; ctx.shadowColor = '#f43f5e'; ctx.shadowBlur = 14;
+                ctx.fillRect(-20, -5, 18, 10); ctx.restore();
+            }
+            if (!charge.active) return;
+            const power = Math.clamp(charge.elapsed / charge.max, 0, 1), color = flight ? '#fbbf24' : charge.weapon === 1 ? '#c084fc' : charge.weapon === 4 ? '#67e8f9' : '#fbbf24';
+            const range = charge.weapon === 1 ? 110 + power * 620 : charge.weapon === 4 ? 140 + power * 140 : 70 + power * 620;
+            ctx.save(); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.globalAlpha = .35;
+            ctx.setLineDash([4, 7]); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dx * range, y + dy * range); ctx.stroke(); ctx.setLineDash([]);
+            ctx.beginPath(); ctx.arc(x + dx * range, y + dy * range, 9 + power * 9, 0, Math.PI * 2); ctx.stroke();
+            ctx.globalAlpha = 1; ctx.translate(x, y); ctx.shadowColor = color; ctx.shadowBlur = 15 + power * 15;
+            const radius = 12 + power * 17;
+            for (let i = 0; i < 3; i++) {
+                const phase = performance.now() * .002 * (i % 2 ? -1 : 1) + i * 2;
+                ctx.lineWidth = 1 + power * 1.5; ctx.globalAlpha = .4 + i * .2;
+                ctx.beginPath(); ctx.arc(0, 0, radius + i * 5, phase, phase + 1.8 + power * 2); ctx.stroke();
+            }
+            ctx.globalAlpha = 1; ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, 3 + power * 7, 0, Math.PI * 2); ctx.fill();
+            ctx.restore();
+            // A solid dark backing keeps charge and damage readable over the paper.
+            const hx = Math.clamp(stickman.x - 36, paperRect.x, paperRect.x + paperRect.w - 72), hy = Math.max(paperRect.y + 4, stickman.y - 70);
+            ctx.save(); ctx.fillStyle = '#0b0d12ee'; ctx.beginPath(); ctx.roundRect(hx, hy, 72, 25, 5); ctx.fill();
+            ctx.font = '600 10px "JetBrains Mono",monospace'; ctx.textAlign = 'center'; ctx.fillStyle = color;
+            ctx.fillText(`${Math.round(power * 100)}%`, hx + 36, hy + 12);
+            ctx.fillStyle = '#334155'; ctx.fillRect(hx + 7, hy + 18, 58, 3); ctx.fillStyle = color; ctx.fillRect(hx + 7, hy + 18, 58 * power, 3); ctx.restore();
+        }
+
+        function selectWeapon(index) {
+            clearAction();
+            currentWeapon = index;
+            document.querySelectorAll('.weapon-btn').forEach((btn, idx) => {
+                btn.classList.toggle('active', idx === index);
+            });
+        }
+
+        function triggerRewind() {
+            rewindEcho.width = W; rewindEcho.height = H; rewindEcho.getContext('2d').drawImage(canvas, 0, 0, W, H);
+            clearAction();
+            rewindMode = true;
+            rewindTimer = 0;
+            forceAccepted = false;
+            bullets = [];
+            blackHoles = [];
+            hammerWaves = [];
+            swordWaves = []; swordSlashes = []; sfx.stopLoops();
+            sfx.playRewind();
+        }
+
+        function triggerForceAccept() {
+            forceAccepted = true;
+            acceptStampScale = 0.05;
+            hitStopTimer = 0.05;
+            screenFlash = 0.4;
+            addScreenShake(0, 1, 3);
+            sfx.playAcceptStamp();
+
+            // Celebratory neon confetti burst
+            const cx = paperRect.x + paperRect.w * 0.5;
+            const cy = paperRect.y + paperRect.h * 0.45;
+            for (let i = 0; i < 85; i++) {
+                const a = Math.random() * Math.PI * 2;
+                const sp = 180 + Math.random() * 650;
+                particles.push({
+                    x: cx + (Math.random() - 0.5) * 160,
+                    y: cy + (Math.random() - 0.5) * 60,
+                    vx: Math.cos(a) * sp,
+                    vy: Math.sin(a) * sp - 220,
+                    size: 3.5 + Math.random() * 4,
+                    color: HIGHLIGHTER_COLORS[i % HIGHLIGHTER_COLORS.length],
+                    life: 0.9 + Math.random() * 0.6,
+                    maxLife: 1.5,
+                    glow: true
+                });
+            }
+            
+        }
+
+        // Event Listeners
+        window.addEventListener('resize', () => {
+            savePageState(); clearTransientEffects();
+            W = window.innerWidth;
+            H = window.innerHeight;
+            configureCanvas();
+            layoutAcademicPaper();
+            restorePageState();
+            stickman.resetPosition();
+        });
+
+        window.addEventListener('keydown', (e) => {
+            if (document.getElementById('customModal').classList.contains('flex')) return;
+            if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) return;
+            const k = e.key.toLowerCase();
+            if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown'].includes(e.code)) e.preventDefault();
+            if (k === 'a' || e.key === 'ArrowLeft') keys.a = true;
+            if (k === 'd' || e.key === 'ArrowRight') keys.d = true;
+            if (k === 's' || e.key === 'ArrowDown') keys.s = true;
+            if (k === 'w' || e.key === 'ArrowUp' || e.code === 'Space') {
+                if (!keys.w) stickman.jump();
+                keys.w = true;
+            }
+            if (k === '1') selectWeapon(0);
+            if (k === '2') selectWeapon(1);
+            if (k === '3') selectWeapon(2);
+            if (k === '4') selectWeapon(3);
+            if (k === '5') selectWeapon(4);
+            if (k === 'f' && !e.repeat) toggleFlight();
+            if ((k === '[' || e.key === 'PageUp') && !e.repeat) changePage(-pdfPageStep());
+            if ((k === ']' || e.key === 'PageDown') && !e.repeat) changePage(pdfPageStep());
+            if (k === 'r' && !e.repeat) triggerRewind();
+            if (k === 'g' && !e.repeat) triggerForceAccept();
+            if (k === 'v' && !e.repeat) togglePdfView();
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const k = e.key.toLowerCase();
+            if (k === 'a' || e.key === 'ArrowLeft') keys.a = false;
+            if (k === 'd' || e.key === 'ArrowRight') keys.d = false;
+            if (k === 's' || e.key === 'ArrowDown') keys.s = false;
+            if (k === 'w' || e.key === 'ArrowUp' || e.code === 'Space') keys.w = false;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.button === 0) {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+                stickman.aimAngle = Math.atan2(mouse.y - (stickman.y - 42 * PLAYER_SCALE), mouse.x - stickman.x);
+                beginAttack();
+            }
+        });
+
+        window.addEventListener('mouseup', (e) => {
+            if (e.button !== 0) return;
+            mouse.x = e.clientX; mouse.y = e.clientY;
+            stickman.aimAngle = Math.atan2(mouse.y - (stickman.y - 42 * PLAYER_SCALE), mouse.x - stickman.x);
+            releaseAttack();
+        });
+
+        // Touch support for mobile / tablet
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            const t = e.touches[0];
+            mouse.x = t.clientX;
+            mouse.y = t.clientY;
+            stickman.aimAngle = Math.atan2(mouse.y - (stickman.y - 42 * PLAYER_SCALE), mouse.x - stickman.x);
+            beginAttack();
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const t = e.touches[0];
+            mouse.x = t.clientX;
+            mouse.y = t.clientY;
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', releaseAttack);
+        canvas.addEventListener('touchcancel', clearAction);
+        function resetInput() { clearAction(); sfx.stopLoops(); Object.keys(keys).forEach(k => keys[k] = false); }
+        window.addEventListener('blur', () => { audioFocused = false; resetInput(); });
+        window.addEventListener('focus', () => { audioFocused = true; });
+        document.addEventListener('visibilitychange', () => { if (document.hidden) resetInput(); });
+        document.getElementById('prevPageBtn').addEventListener('click', () => changePage(-pdfPageStep()));
+        document.getElementById('nextPageBtn').addEventListener('click', () => changePage(pdfPageStep()));
+        document.getElementById('viewModeBtn').addEventListener('click', togglePdfView);
+        document.getElementById('flightBtn').addEventListener('click', toggleFlight);
+
+        // UI Button Wiring
+        document.querySelectorAll('.weapon-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                selectWeapon(parseInt(btn.dataset.weapon, 10));
+            });
+        });
+
+        document.getElementById('paperSelect').addEventListener('change', (e) => {
+            savePageState(); clearTransientEffects(); currentPage = 0;
+            currentTemplateKey = e.target.value;
+            layoutAcademicPaper();
+            restorePageState();
+            stickman.resetPosition();
+        });
+
+        document.getElementById('rewindBtn').addEventListener('click', triggerRewind);
+        document.getElementById('acceptBtn').addEventListener('click', triggerForceAccept);
+
+        document.getElementById('audioToggleBtn').addEventListener('click', () => {
+            sfx.setMuted(!sfx.muted);
+            document.getElementById('audioToggleBtn').setAttribute('aria-pressed', String(!sfx.muted));
+            document.getElementById('audioOnIcon').classList.toggle('hidden', sfx.muted);
+            document.getElementById('audioOffIcon').classList.toggle('hidden', !sfx.muted);
+        });
+
+        // Custom Paper Modal Logic
+        const customModal = document.getElementById('customModal');
+        document.getElementById('openCustomModalBtn').addEventListener('click', () => {
+            resetInput();
+            setImportStatus('');
+            customModal.classList.remove('hidden');
+            customModal.classList.add('flex');
+        });
+
+        const closeCustomModal = () => {
+            cancelPdfImport();
+            customModal.classList.add('hidden');
+            customModal.classList.remove('flex');
+        };
+        document.getElementById('closeCustomModalBtn').addEventListener('click', closeCustomModal);
+        document.getElementById('cancelCustomBtn').addEventListener('click', closeCustomModal);
+        document.getElementById('pdfFileInput').addEventListener('change', event => {
+            const file = event.target.files[0]; event.target.value = '';
+            importPdfFile(file);
+        });
+        const pdfDropZone = document.getElementById('pdfDropZone');
+        pdfDropZone.addEventListener('dragover', event => { event.preventDefault(); pdfDropZone.classList.add('drag-over'); });
+        pdfDropZone.addEventListener('dragleave', () => pdfDropZone.classList.remove('drag-over'));
+        pdfDropZone.addEventListener('drop', event => {
+            event.preventDefault(); pdfDropZone.classList.remove('drag-over');
+            importPdfFile(event.dataTransfer.files[0]);
+        });
+        function submitPdfPassword() {
+            if (!pdfPasswordCallback) return;
+            const callback = pdfPasswordCallback; pdfPasswordCallback = null;
+            callback(document.getElementById('pdfPasswordInput').value);
+            document.getElementById('pdfPasswordInput').value = '';
+        }
+        document.getElementById('pdfPasswordBtn').addEventListener('click', submitPdfPassword);
+        document.getElementById('pdfPasswordInput').addEventListener('keydown', event => {
+            if (event.key === 'Enter') { event.preventDefault(); submitPdfPassword(); }
+        });
+
+        document.getElementById('applyCustomBtn').addEventListener('click', () => {
+            const customTitle = document.getElementById('customTitleInput').value.trim();
+            const customBody = document.getElementById('customBodyInput').value.trim();
+            if (customTitle || customBody) {
+                savePageState(); clearTransientEffects(); currentPage = 0; customPages = [];
+                for (const key of pageStates.keys()) { if (key.startsWith('custom:')) pageStates.delete(key); }
+                PAPER_TEMPLATES.custom = {
+                    ...PAPER_TEMPLATES.neurips,
+                    venue: "Custom Target Manuscript · Ready For Immediate Destruction",
+                    title: customTitle || "Untitled Source of Graduate Student Suffering and Sleepless Nights",
+                    abstract: customBody || PAPER_TEMPLATES.neurips.abstract,
+                    sec1Body: customBody || PAPER_TEMPLATES.neurips.sec1Body
+                };
+                currentTemplateKey = 'custom';
+                let customOption = document.querySelector('#paperSelect option[value="custom"]');
+                if (!customOption) {
+                    customOption = document.createElement('option'); customOption.value = 'custom';
+                    customOption.textContent = '文本'; document.getElementById('paperSelect').appendChild(customOption);
+                }
+                document.getElementById('paperSelect').value = 'custom';
+                layoutAcademicPaper();
+                stickman.resetPosition();
+            }
+            closeCustomModal();
+        });
+
+        let lastTime = performance.now();
+
+        function gameLoop(now) {
+            const rawDt = Math.min((now - lastTime) / 1000, 0.05);
+            lastTime = now;
+
+            if (hitStopTimer > 0) {
+                hitStopTimer -= rawDt;
+            } else {
+                updateSimulation(rawDt);
+            }
+
+            renderScene();
+            requestAnimationFrame(gameLoop);
+        }
+
+        window.onload = function () {
+            configureCanvas();
+            layoutAcademicPaper();
+            stickman.resetPosition();
+            // Font metrics affect both wrapping and physics; reflow once web fonts settle.
+            document.fonts.ready.then(() => {
+                if (!wordBodies.some(w => w.state !== 'formatted') && !mouse.down && currentTemplateKey !== 'custom') {
+                    layoutAcademicPaper(); stickman.resetPosition();
+                }
+            });
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
